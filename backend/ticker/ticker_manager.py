@@ -11,10 +11,9 @@ CONSTANTS_DIR.mkdir(exist_ok=True)
 
 class TickerManager:
     
-    # Companies with multiple securities - map to preferred primary ticker
     PREFERRED_TICKERS = {
-        'microstrategy': 'MSTR',           # MSTR, STRC, STRF, STRK, STRD -> prefer MSTR
-        'berkshire hathaway': 'BRK.B',    # BRK.A, BRK.B -> prefer BRK.B (more liquid)
+        'microstrategy': 'MSTR',
+        'berkshire hathaway': 'BRK.B',
     }
     
     def __init__(self, cache_days: int = 7):
