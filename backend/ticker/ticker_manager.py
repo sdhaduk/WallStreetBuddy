@@ -11,6 +11,12 @@ CONSTANTS_DIR.mkdir(exist_ok=True)
 
 class TickerManager:
     
+    # Companies with multiple securities - map to preferred primary ticker
+    PREFERRED_TICKERS = {
+        'microstrategy': 'MSTR',           # MSTR, STRC, STRF, STRK, STRD -> prefer MSTR
+        'berkshire hathaway': 'BRK.B',    # BRK.A, BRK.B -> prefer BRK.B (more liquid)
+    }
+    
     def __init__(self, cache_days: int = 7):
         self.sec_url = "https://www.sec.gov/files/company_tickers.json"
         self.cache_file = CONSTANTS_DIR / "sec_tickers.json"
@@ -83,7 +89,6 @@ class TickerManager:
     def update_tickers(self) -> bool:
         """Fetch latest ticker data from SEC."""
         try:
-            print("🔄 Fetching latest ticker data from SEC...")
             
             headers = {
                 'User-Agent': 'Mozilla/5.0 (compatible; TickerBot/1.0; +reddit-pipeline)',
@@ -114,14 +119,18 @@ class TickerManager:
                             print(f"🆕 New company {ticker}: '{company_name}' → '{normalized_name}'")
                         
                         if normalized_name:
-                            new_reverse_company_map[normalized_name] = ticker
+                            if normalized_name in self.PREFERRED_TICKERS:
+                                preferred_ticker = self.PREFERRED_TICKERS[normalized_name]
+                                new_reverse_company_map[normalized_name] = preferred_ticker
+                            else:
+                                current_ticker = new_reverse_company_map.get(normalized_name)
+                                if current_ticker is None or len(ticker) < len(current_ticker):
+                                    new_reverse_company_map[normalized_name] = ticker
             
-            # Update instance variables
             self.tickers = new_tickers
             self.reverse_company_map = new_reverse_company_map
             self.last_updated = datetime.now()
             
-            # Save to cache
             self._save_to_cache()
             
             print(f"✅ Updated {len(self.tickers)} tickers from SEC")
