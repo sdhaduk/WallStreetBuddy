@@ -7,7 +7,6 @@ import time
 from kafka.admin import KafkaAdminClient, NewTopic
 from kafka.errors import TopicAlreadyExistsError
 
-# Kafka configuration
 KAFKA_BOOTSTRAP_SERVERS = ['localhost:9092']
 TOPICS = [
     {
@@ -25,41 +24,44 @@ TOPICS = [
 def create_topics():
     """Create Kafka topics if they don't exist"""
     
-    # Create admin client
     admin_client = KafkaAdminClient(
         bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
         client_id='reddit-setup'
     )
     
-    # Create topic objects
     topic_list = []
     for topic_config in TOPICS:
+        if topic_config['name'] == 'reddit-data':
+            topic_configs = {
+                'retention.ms': '3600000', 
+                'segment.ms': '600000'
+            }
+        else:
+            topic_configs = {}
+        
         topic = NewTopic(
             name=topic_config['name'],
             num_partitions=topic_config['num_partitions'],
-            replication_factor=topic_config['replication_factor']
+            replication_factor=topic_config['replication_factor'],
+            topic_configs=topic_configs
         )
         topic_list.append(topic)
     
     try:
-        # Create topics
         fs = admin_client.create_topics(new_topics=topic_list, validate_only=False)
-        
-        # Wait for topics to be created - handle different kafka-python versions
+    
         try:
-            # Try new API first
             for topic, future in fs.items():
                 try:
-                    future.result()  # The result itself is None
+                    future.result() 
                     print(f"✅ Topic '{topic}' created successfully")
                 except TopicAlreadyExistsError:
                     print(f"ℹ️  Topic '{topic}' already exists")
                 except Exception as e:
                     print(f"❌ Failed to create topic '{topic}': {e}")
         except AttributeError:
-            # Fallback for older kafka-python versions
             import time
-            time.sleep(2)  # Give topics time to be created
+            time.sleep(2)  
             for topic_config in TOPICS:
                 print(f"✅ Topic '{topic_config['name']}' creation requested")
                 
@@ -83,7 +85,6 @@ def wait_for_kafka():
                 client_id='kafka-health-check'
             )
             
-            # Try to get metadata (this will fail if Kafka isn't ready)
             metadata = admin_client.describe_topics()
             admin_client.close()
             
@@ -102,12 +103,10 @@ def main():
     """Main setup function"""
     print("🚀 Setting up Kafka for Reddit data streaming...")
     
-    # Wait for Kafka to be ready
     if not wait_for_kafka():
         print("❌ Setup failed: Kafka is not available")
         return
     
-    # Create topics
     create_topics()
     
     print("\n🎉 Kafka setup complete!")
