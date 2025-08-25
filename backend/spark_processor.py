@@ -17,7 +17,7 @@ AMBIGUOUS_TICKERS = {
 }
 
 REDDIT_ONLY_TICKERS = {
-    'OP', 'DD', 'PM', 'JD', 'PC'
+    'OP', 'DD', 'PM', 'JD', 'PC', 'DTE'
 }
 
 FINANCIAL_KEYWORDS = {
