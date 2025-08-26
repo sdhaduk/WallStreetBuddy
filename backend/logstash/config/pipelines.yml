@@ -1,0 +1,2 @@
+- pipeline.id: ticker-mentions
+  path.config: "/usr/share/logstash/pipeline/ticker-mentions.conf"
