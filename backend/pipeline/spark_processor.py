@@ -7,6 +7,9 @@ from pyspark.sql.functions import (
 )
 from pyspark.sql.types import StructType, StructField, StringType, ArrayType
 import spacy
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ticker.ticker_manager import is_valid_ticker, get_ticker_from_company_name
 
 KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"

@@ -69,8 +69,8 @@ services:
       - "5044:5044"
       - "9600:9600"
     volumes:
-      - ./logstash/pipeline:/usr/share/logstash/pipeline
-      - ./logstash/config:/usr/share/logstash/config
+      - ./pipeline/logstash/pipeline:/usr/share/logstash/pipeline
+      - ./pipeline/logstash/config:/usr/share/logstash/config
     environment:
       - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
 
