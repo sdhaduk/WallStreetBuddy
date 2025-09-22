@@ -7,7 +7,7 @@ from typing import List
 class Settings(BaseSettings):
     fastapi_host: str = "0.0.0.0"
     fastapi_port: int = 8000
-    debug: bool = False
+    debug: bool = True
     
     elasticsearch_url: str = "http://localhost:9200"
     elasticsearch_index_pattern: str = "ticker-mentions-*"
