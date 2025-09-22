@@ -131,7 +131,22 @@ const FilterControls = ({
         <button
           onClick={onApplyFilters}
           disabled={!isValidForApply || loading}
-          className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+          className="px-3 py-1 text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            backgroundColor: '#f8f9fa',
+            color: '#343a40',
+            border: '1px solid #dee2e6'
+          }}
+          onMouseEnter={(e) => {  
+            if (isValidForApply && !loading) {
+              e.target.style.backgroundColor = '#e9ecef'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (isValidForApply && !loading) {
+              e.target.style.backgroundColor = '#f8f9fa'
+            }
+          }}
         >
           Apply Filters
         </button>
@@ -144,6 +159,7 @@ const Current = () => {
   const [currentData, setCurrentData] = useState([])
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [totalMentions, setTotalMentions] = useState(0)
 
   // Filter state
   const [selectedSubreddit, setSelectedSubreddit] = useState('all')
@@ -156,16 +172,66 @@ const Current = () => {
   const [appliedTimeValue, setAppliedTimeValue] = useState(3)
   const [appliedTimeUnit, setAppliedTimeUnit] = useState('days')
 
-  // Debounced refresh function
-  const debouncedRefresh = useCallback(() => {
-    setFiltersChanged(true)
-    const timeoutId = setTimeout(() => {
-      fetchCurrentData()
-      setFiltersChanged(false)
-    }, 300) // 300ms delay
+  // Helper function to fetch data with specific parameters
+  const fetchCurrentDataWithParams = async (subredditParam, timeValueParam, timeUnitParam) => {
+    setLoading(true)
+    try {
+      // Create timeframe string from provided parameters
+      let timeframe
+      if (timeUnitParam === 'minutes') {
+        timeframe = `${timeValueParam}m`
+      } else if (timeUnitParam === 'hours') {
+        timeframe = `${timeValueParam}h`
+      } else if (timeUnitParam === 'days') {
+        timeframe = `${timeValueParam}d`
+      }
 
-    return () => clearTimeout(timeoutId)
-  }, [])
+      // Map frontend subreddit names to backend values
+      const subredditMap = {
+        'all': 'all',
+        'wallstreetbets': 'wallstreetbets',
+        'stocks': 'stocks',
+        'valueinvesting': 'ValueInvesting'
+      }
+
+      const subreddit = subredditMap[subredditParam] || 'all'
+
+      const response = await fetch(`http://localhost:8000/api/top-10-filtered?timeframe=${timeframe}&subreddit=${subreddit}`)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      if (result.status === 200 && result.data) {
+        // Transform backend data format to frontend format
+        const transformedData = result.data.map(item => ({
+          name: item.ticker,
+          mentions: item.mentions
+        }))
+
+        setCurrentData(transformedData)
+        setTotalMentions(result.total_mentions || 0)
+        setLastUpdated(new Date())
+      } else {
+        console.error('Invalid response format:', result)
+        setCurrentData([])
+        setTotalMentions(0)
+      }
+    } catch (error) {
+      console.error('Error fetching ticker data:', error)
+      setCurrentData([])
+      setTotalMentions(0)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch data from backend API using applied state
+  const fetchCurrentData = useCallback(async () => {
+    await fetchCurrentDataWithParams(appliedSubreddit, appliedTimeValue, appliedTimeUnit)
+  }, [appliedSubreddit, appliedTimeValue, appliedTimeUnit])
 
   // Filter handlers (no automatic updates)
   const handleSubredditChange = (subreddit) => {
@@ -192,7 +258,7 @@ const Current = () => {
   }
 
   // Apply filters function
-  const applyFilters = () => {
+  const applyFilters = async () => {
     // Validate timeValue before applying
     const units = {
       minutes: { max: 10080 }, // 7 days in minutes
@@ -203,93 +269,20 @@ const Current = () => {
     const maxValue = units[timeUnit]?.max || 7
     const validValue = Math.min(Math.max(1, parseInt(timeValue) || 1), maxValue)
 
-    setAppliedSubreddit(selectedSubreddit)
-    setAppliedTimeValue(validValue)
-    setAppliedTimeUnit(timeUnit)
-
     // Update the input value if it was corrected
     if (validValue !== timeValue) {
       setTimeValue(validValue)
     }
 
-    fetchCurrentData()
+    // Set applied filters
+    setAppliedSubreddit(selectedSubreddit)
+    setAppliedTimeValue(validValue)
+    setAppliedTimeUnit(timeUnit)
+
+    // Call fetchCurrentData with the new values directly
+    await fetchCurrentDataWithParams(selectedSubreddit, validValue, timeUnit)
   }
 
-  // Enhanced mock data function based on filters
-  const generateMockCurrentData = () => {
-    // Subreddit-specific stock preferences
-    const subredditData = {
-      wallstreetbets: [
-        { name: 'GME', mentions: 1200 },
-        { name: 'AMC', mentions: 980 },
-        { name: 'TSLA', mentions: 850 },
-        { name: 'NVDA', mentions: 720 },
-        { name: 'PLTR', mentions: 650 },
-        { name: 'BB', mentions: 580 },
-        { name: 'AAPL', mentions: 520 },
-        { name: 'AMD', mentions: 480 },
-        { name: 'MSFT', mentions: 420 },
-        { name: 'SPY', mentions: 380 }
-      ],
-      stocks: [
-        { name: 'AAPL', mentions: 950 },
-        { name: 'MSFT', mentions: 820 },
-        { name: 'GOOGL', mentions: 750 },
-        { name: 'AMZN', mentions: 680 },
-        { name: 'TSLA', mentions: 620 },
-        { name: 'NVDA', mentions: 580 },
-        { name: 'META', mentions: 520 },
-        { name: 'NFLX', mentions: 480 },
-        { name: 'AMD', mentions: 450 },
-        { name: 'INTC', mentions: 380 }
-      ],
-      valueinvesting: [
-        { name: 'BRK.B', mentions: 720 },
-        { name: 'JNJ', mentions: 650 },
-        { name: 'KO', mentions: 580 },
-        { name: 'PG', mentions: 520 },
-        { name: 'AAPL', mentions: 480 },
-        { name: 'MSFT', mentions: 450 },
-        { name: 'VTI', mentions: 420 },
-        { name: 'SPY', mentions: 380 },
-        { name: 'WMT', mentions: 350 },
-        { name: 'JPM', mentions: 320 }
-      ],
-      all: [
-        { name: 'AAPL', mentions: 890 },
-        { name: 'TSLA', mentions: 720 },
-        { name: 'NVDA', mentions: 650 },
-        { name: 'AMD', mentions: 480 },
-        { name: 'MSFT', mentions: 420 },
-        { name: 'GOOGL', mentions: 380 },
-        { name: 'AMZN', mentions: 340 },
-        { name: 'META', mentions: 290 },
-        { name: 'NFLX', mentions: 250 },
-        { name: 'GME', mentions: 220 }
-      ]
-    }
-
-    // Get base data for applied subreddit
-    const baseData = subredditData[appliedSubreddit] || subredditData.all
-
-    // Calculate time multiplier based on applied timeframe
-    let timeMultiplier = 1
-    const totalMinutes = appliedTimeUnit === 'minutes' ? appliedTimeValue :
-                        appliedTimeUnit === 'hours' ? appliedTimeValue * 60 :
-                        appliedTimeValue * 24 * 60
-
-    // Shorter timeframes have fewer mentions
-    if (totalMinutes < 60) timeMultiplier = 0.1      // < 1 hour
-    else if (totalMinutes < 360) timeMultiplier = 0.3 // < 6 hours
-    else if (totalMinutes < 1440) timeMultiplier = 0.6 // < 1 day
-    else if (totalMinutes < 4320) timeMultiplier = 0.8 // < 3 days
-
-    // Add randomness and apply time multiplier
-    return baseData.map(item => ({
-      ...item,
-      mentions: Math.max(1, Math.floor((item.mentions * timeMultiplier) + Math.floor(Math.random() * 20) - 10))
-    }))
-  }
 
   // Helper functions for dynamic content (using applied filters)
   const getSubredditDisplayName = () => {
@@ -311,30 +304,20 @@ const Current = () => {
     return `Top 10 from ${getSubredditDisplayName()} - Last ${getTimeDisplayText()}`
   }
 
-  // Fetch current data
-  const fetchCurrentData = () => {
-    setLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      setCurrentData(generateMockCurrentData())
-      setLastUpdated(new Date())
-      setLoading(false)
-    }, 500)
-  }
 
   // Initial load
   useEffect(() => {
     fetchCurrentData()
   }, [])
 
-  // Polling every 30 seconds
+  // Polling every minute
   useEffect(() => {
     const interval = setInterval(() => {
       fetchCurrentData()
-    }, 30000) // 30 seconds
+    }, 60000) // 60 seconds
 
     return () => clearInterval(interval)
-  }, [])
+  }, [fetchCurrentData])
 
   if (loading && !currentData.length) {
     return (
@@ -464,8 +447,8 @@ const Current = () => {
         <div className="text-sm text-muted-foreground space-y-1">
           <p>• Source: {getSubredditDisplayName()}</p>
           <p>• Time Range: Last {getTimeDisplayText()}</p>
-          <p>• Total mentions: {currentData.reduce((sum, item) => sum + item.mentions, 0).toLocaleString()}</p>
-          <p>• Next update: Automatic refresh every 30 seconds</p>
+          <p>• Total mentions: {totalMentions.toLocaleString()}</p>
+          <p>• Next update: Automatic refresh every minute</p>
         </div>
       </div>
 
