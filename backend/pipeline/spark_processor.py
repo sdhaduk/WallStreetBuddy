@@ -81,20 +81,23 @@ def extract_tickers_from_text(text: str) -> List[str]:
         tickers.add(ticker)
     
     try:
-        nlp = spacy.load("en_core_web_sm")
-        doc = nlp(text)
-        
-        for ent in doc.ents:
-            if ent.label_ == "ORG":
-                ticker = get_ticker_from_company_name(ent.text)
-                if ticker:
-                    tickers.add(ticker)
-    except Exception as e:
+        global nlp_broadcast
+        if nlp_broadcast is not None:
+            nlp = nlp_broadcast.value
+            doc = nlp(text)
+
+            for ent in doc.ents:
+                if ent.label_ == "ORG":
+                    ticker = get_ticker_from_company_name(ent.text)
+                    if ticker:
+                        tickers.add(ticker)
+    except Exception:
         pass
     
     return list(tickers)
 
-extract_tickers_udf = udf(extract_tickers_from_text, ArrayType(StringType()))
+# Global broadcast variable for SpaCy model
+nlp_broadcast = None
 
 class SparkRedditProcessor:
     def __init__(self):
@@ -111,8 +114,15 @@ class SparkRedditProcessor:
             .getOrCreate()
         
         self.spark.sparkContext.setLogLevel("WARN")
-        
+
+        # Load and broadcast SpaCy model globally
+        global nlp_broadcast
+        print("📦 Loading SpaCy model...")
+        nlp_model = spacy.load("en_core_web_sm")
+        nlp_broadcast = self.spark.sparkContext.broadcast(nlp_model)
+
         print("✅ Spark session created successfully")
+        print("✅ SpaCy model broadcasted to workers")
     
     def get_reddit_data_schema(self):
         return StructType([
@@ -151,7 +161,7 @@ class SparkRedditProcessor:
         windowed_df = parsed_df \
             .withWatermark("kafka_timestamp", "2 minutes") \
             .groupBy(
-                window(col("kafka_timestamp"), "10 minutes"),
+                window(col("kafka_timestamp"), "30 seconds"),
                 col("subreddit")
             ) \
             .agg(collect_list(struct("id", "subreddit", "body", "timestamp", "type")).alias("messages"))
@@ -167,7 +177,7 @@ class SparkRedditProcessor:
             col("message.timestamp").alias("timestamp"),
             col("message.type").alias("type")
         ) \
-        .withColumn("tickers", extract_tickers_udf(col("body"))) \
+        .withColumn("tickers", udf(extract_tickers_from_text, ArrayType(StringType()))(col("body"))) \
         .withColumn("ticker_count", size(col("tickers"))) \
         .withColumn("processed_timestamp", current_timestamp()) \
         .filter(col("ticker_count") > 0)
@@ -198,8 +208,6 @@ class SparkRedditProcessor:
         
         print(f"📝 Writing processed data to: {TICKER_MENTIONS_TOPIC}")
         print("✅ Streaming started successfully!")
-        print("📊 Processing Reddit data in 10-minute batches with ticker extraction")
-        print("Press Ctrl+C to stop the stream")
         
         try:
             query.awaitTermination()
