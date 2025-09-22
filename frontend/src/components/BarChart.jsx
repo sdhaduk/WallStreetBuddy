@@ -50,10 +50,10 @@ const BarChart = ({
             onMouseLeave={handleMouseLeave}
           >
             <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-            <XAxis 
-              dataKey="name" 
+            <XAxis
+              dataKey="name"
               className="text-sm"
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 12, fontWeight: 'bold' }}
             />
             <YAxis 
               className="text-sm"
