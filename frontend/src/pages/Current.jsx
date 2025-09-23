@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import BarChart from '../components/BarChart'
-import { RefreshCw } from 'lucide-react'
+import CommentsModal from '../components/CommentsModal'
+import { RefreshCw, MessageSquare } from 'lucide-react'
 
 // SubredditSelector Component
 const SubredditSelector = ({ selectedSubreddit, onSubredditChange }) => {
@@ -160,6 +161,7 @@ const Current = () => {
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [totalMentions, setTotalMentions] = useState(0)
+  const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false)
 
   // Filter state
   const [selectedSubreddit, setSelectedSubreddit] = useState('all')
@@ -343,17 +345,37 @@ const Current = () => {
             <RefreshCw className="h-4 w-4" />
             <span>Loading...</span>
           </div>
-          <button
-            disabled={true}
-            className="px-3 py-1 text-sm rounded-md transition-colors disabled:opacity-50"
-            style={{
-              backgroundColor: '#f8f9fa',
-              color: '#343a40',
-              border: '1px solid #dee2e6'
-            }}
-          >
-            Refresh Now
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsCommentsModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-1 text-sm rounded-md transition-colors"
+              style={{
+                backgroundColor: '#f8f9fa',
+                color: '#343a40',
+                border: '1px solid #dee2e6'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#e9ecef'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#f8f9fa'
+              }}
+            >
+              <MessageSquare className="h-4 w-4" />
+              View Comments
+            </button>
+            <button
+              disabled={true}
+              className="px-3 py-1 text-sm rounded-md transition-colors disabled:opacity-50"
+              style={{
+                backgroundColor: '#f8f9fa',
+                color: '#343a40',
+                border: '1px solid #dee2e6'
+              }}
+            >
+              Refresh Now
+            </button>
+          </div>
         </div>
         
         <div className="bg-card p-6 rounded-lg border">
@@ -409,28 +431,48 @@ const Current = () => {
              `Last updated: ${lastUpdated ? lastUpdated.toLocaleTimeString() : 'Loading...'}`}
           </span>
         </div>
-        <button
-          onClick={fetchCurrentData}
-          disabled={loading}
-          className="px-3 py-1 text-sm rounded-md transition-colors disabled:opacity-50"
-          style={{
-            backgroundColor: '#f8f9fa',
-            color: '#343a40',
-            border: '1px solid #dee2e6'
-          }}
-          onMouseEnter={(e) => {
-            if (!loading) {
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsCommentsModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-1 text-sm rounded-md transition-colors"
+            style={{
+              backgroundColor: '#f8f9fa',
+              color: '#343a40',
+              border: '1px solid #dee2e6'
+            }}
+            onMouseEnter={(e) => {
               e.target.style.backgroundColor = '#e9ecef'
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!loading) {
+            }}
+            onMouseLeave={(e) => {
               e.target.style.backgroundColor = '#f8f9fa'
-            }
-          }}
-        >
-          Refresh Now
-        </button>
+            }}
+          >
+            <MessageSquare className="h-4 w-4" />
+            Search Comments
+          </button>
+          <button
+            onClick={fetchCurrentData}
+            disabled={loading}
+            className="px-3 py-1 text-sm rounded-md transition-colors disabled:opacity-50"
+            style={{
+              backgroundColor: '#f8f9fa',
+              color: '#343a40',
+              border: '1px solid #dee2e6'
+            }}
+            onMouseEnter={(e) => {
+              if (!loading) {
+                e.target.style.backgroundColor = '#e9ecef'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!loading) {
+                e.target.style.backgroundColor = '#f8f9fa'
+              }
+            }}
+          >
+            Refresh Now
+          </button>
+        </div>
       </div>
       
       <BarChart
@@ -457,6 +499,11 @@ const Current = () => {
           ℹ️ This data represents live counting in progress. Charts are not clickable as analysis is not yet complete.
         </p>
       </div>
+
+      <CommentsModal
+        isOpen={isCommentsModalOpen}
+        onClose={() => setIsCommentsModalOpen(false)}
+      />
     </div>
   )
 }
