@@ -5,54 +5,110 @@ const CommentsModal = ({ isOpen, onClose }) => {
   const [tickers, setTickers] = useState('')
   const [timeValue, setTimeValue] = useState(3)
   const [timeUnit, setTimeUnit] = useState('days')
+  const [subreddit, setSubreddit] = useState('all')
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
-
-  // Mock data for skeleton functionality
-  const mockComments = [
-    {
-      id: '1',
-      body: 'Just bought more AAPL shares today. This dip is a great opportunity! 🚀',
-      subreddit: 'stocks',
-      timestamp: '2024-01-15T14:30:00Z',
-      tickers: ['AAPL']
-    },
-    {
-      id: '2',
-      body: 'TSLA to the moon! Elon knows what he\'s doing. Also keeping an eye on NVDA for AI plays.',
-      subreddit: 'wallstreetbets',
-      timestamp: '2024-01-15T13:45:00Z',
-      tickers: ['TSLA', 'NVDA']
-    },
-    {
-      id: '3',
-      body: 'Value investing approach: looking at SPY for long-term holds. Steady growth is key.',
-      subreddit: 'ValueInvesting',
-      timestamp: '2024-01-15T12:20:00Z',
-      tickers: ['SPY']
-    },
-    {
-      id: '4',
-      body: 'AMD crushing it with their new chips. Competition with NVDA is heating up!',
-      subreddit: 'stocks',
-      timestamp: '2024-01-15T11:15:00Z',
-      tickers: ['AMD', 'NVDA']
-    },
-    {
-      id: '5',
-      body: 'GOOGL earnings coming up. Expecting good numbers from cloud and advertising.',
-      subreddit: 'stocks',
-      timestamp: '2024-01-15T10:30:00Z',
-      tickers: ['GOOGL']
-    }
-  ]
+  const [cursor, setCursor] = useState(null)
+  const [hasMore, setHasMore] = useState(false)
+  const [error, setError] = useState(null)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const timeUnits = [
     { value: 'minutes', label: 'Minutes', max: 10080 },
     { value: 'hours', label: 'Hours', max: 168 },
     { value: 'days', label: 'Days', max: 7 }
   ]
+
+  const subreddits = [
+    { value: 'all', label: 'All Subreddits' },
+    { value: 'wallstreetbets', label: 'r/wallstreetbets' },
+    { value: 'stocks', label: 'r/stocks' },
+    { value: 'valueinvesting', label: 'r/ValueInvesting' }
+  ]
+
+  // API function to fetch comments
+  const fetchComments = async (isLoadMore = false) => {
+    const currentLoading = isLoadMore ? setLoadingMore : setLoading
+    currentLoading(true)
+    setError(null)
+
+    try {
+      // Build timeframe string
+      let timeframe
+      if (timeUnit === 'minutes') {
+        timeframe = `${timeValue}m`
+      } else if (timeUnit === 'hours') {
+        timeframe = `${timeValue}h`
+      } else if (timeUnit === 'days') {
+        timeframe = `${timeValue}d`
+      }
+
+      // Map frontend subreddit names to backend values
+      const subredditMap = {
+        'all': 'all',
+        'wallstreetbets': 'wallstreetbets',
+        'stocks': 'stocks',
+        'valueinvesting': 'ValueInvesting'
+      }
+
+      const mappedSubreddit = subredditMap[subreddit] || 'all'
+
+      // Build URL with query parameters
+      const params = new URLSearchParams({
+        timeframe,
+        subreddit: mappedSubreddit,
+        size: '50'
+      })
+
+      // Add tickers if provided
+      if (tickers && tickers.trim()) {
+        params.append('tickers', tickers.trim())
+      }
+
+      // Add cursor for pagination
+      if (isLoadMore && cursor) {
+        params.append('cursor', cursor)
+      }
+
+      const response = await fetch(`http://localhost:8000/api/comments?${params}`)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      if (result.status === 200) {
+        const newComments = result.data || []
+
+        if (isLoadMore) {
+          // Append to existing comments
+          setComments(prev => [...prev, ...newComments])
+        } else {
+          // Replace comments for new search
+          setComments(newComments)
+          setHasSearched(true)
+        }
+
+        // Update pagination state
+        setCursor(result.pagination?.next_cursor || null)
+        setHasMore(result.pagination?.has_next || false)
+      } else {
+        throw new Error(result.detail || 'Failed to fetch comments')
+      }
+    } catch (err) {
+      console.error('Error fetching comments:', err)
+      setError(err.message || 'Failed to fetch comments. Please try again.')
+
+      if (!isLoadMore) {
+        setComments([])
+        setHasSearched(true)
+      }
+    } finally {
+      currentLoading(false)
+    }
+  }
 
   // Validation logic (same as Current.jsx)
   const currentUnit = timeUnits.find(unit => unit.value === timeUnit)
@@ -67,30 +123,17 @@ const CommentsModal = ({ isOpen, onClose }) => {
   }
 
   const handleSearch = () => {
-    setLoading(true)
-    setHasSearched(true)
+    // Reset pagination state for new search
+    setCursor(null)
+    setHasMore(false)
 
-    // Simulate API call
-    setTimeout(() => {
-      // Filter mock data based on tickers input
-      if (tickers.trim()) {
-        const tickerList = tickers.split(',').map(t => t.trim().toUpperCase())
-        const filtered = mockComments.filter(comment =>
-          comment.tickers.some(ticker => tickerList.includes(ticker))
-        )
-        setComments(filtered)
-      } else {
-        // Show all comments if no tickers specified
-        setComments(mockComments)
-      }
-      setLoading(false)
-    }, 1000)
+    // Call API to fetch comments
+    fetchComments(false)
   }
 
-  const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleString()
+  const handleLoadMore = () => {
+    fetchComments(true)
   }
-
 
   if (!isOpen) return null
 
@@ -143,6 +186,24 @@ const CommentsModal = ({ isOpen, onClose }) => {
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                 Leave empty to see all comments from the timeframe
               </p>
+            </div>
+
+            {/* Subreddit Filter */}
+            <div className="flex-shrink-0 w-full lg:w-48">
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2">
+                Subreddit
+              </label>
+              <select
+                value={subreddit}
+                onChange={(e) => setSubreddit(e.target.value)}
+                className="w-full px-3 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                {subreddits.map((sub) => (
+                  <option key={sub.value} value={sub.value}>
+                    {sub.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Time Period */}
@@ -233,7 +294,21 @@ const CommentsModal = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {!loading && hasSearched && comments.length === 0 && (
+          {/* Error State */}
+          {!loading && error && (
+            <div className="text-center py-8">
+              <MessageSquare className="h-12 w-12 text-red-500 dark:text-red-400 mx-auto mb-4" />
+              <p className="text-red-600 dark:text-red-400 mb-2">{error}</p>
+              <button
+                onClick={handleSearch}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {!loading && !error && hasSearched && comments.length === 0 && (
             <div className="text-center py-8">
               <MessageSquare className="h-12 w-12 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 dark:text-gray-400">No comments found matching your criteria</p>
@@ -243,7 +318,7 @@ const CommentsModal = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {!loading && hasSearched && comments.length > 0 && (
+          {!loading && !error && hasSearched && comments.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
                 <MessageSquare className="h-4 w-4" />
@@ -253,7 +328,7 @@ const CommentsModal = ({ isOpen, onClose }) => {
               {comments.map((comment) => (
                 <div key={comment.id} className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
                   <div className="mb-3">
-                    <p className="text-gray-900 dark:text-gray-100 leading-relaxed">{comment.body}</p>
+                    <p className="text-gray-900 dark:text-gray-100 leading-relaxed text-left">{comment.body}</p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
@@ -264,7 +339,7 @@ const CommentsModal = ({ isOpen, onClose }) => {
 
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      <span>{formatTimestamp(comment.timestamp)}</span>
+                      <span>{comment.timestamp}</span>
                     </div>
 
                     <div className="flex items-center gap-1">
@@ -283,6 +358,34 @@ const CommentsModal = ({ isOpen, onClose }) => {
                   </div>
                 </div>
               ))}
+
+              {/* Load More Button */}
+              {hasMore && (
+                <div className="text-center mt-6">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                    className="px-6 py-2 text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: '#f8f9fa',
+                      color: '#343a40',
+                      border: '1px solid #dee2e6'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!loadingMore) {
+                        e.target.style.backgroundColor = '#e9ecef'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!loadingMore) {
+                        e.target.style.backgroundColor = '#f8f9fa'
+                      }
+                    }}
+                  >
+                    {loadingMore ? 'Loading...' : 'Load More Comments'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
