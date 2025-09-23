@@ -1,8 +1,10 @@
 import re
+import time
+import shutil
 from typing import List
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
-    col, from_json, to_json, struct, current_timestamp, window, 
+    col, from_json, to_json, struct, current_timestamp, window,
     udf, collect_list, explode, size
 )
 from pyspark.sql.types import StructType, StructField, StringType, ArrayType
@@ -15,6 +17,7 @@ from ticker.ticker_manager import is_valid_ticker, get_ticker_from_company_name
 KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
 REDDIT_DATA_TOPIC = "reddit-data"
 TICKER_MENTIONS_TOPIC = "ticker-mentions"
+CHECKPOINT_DIR = "/tmp/spark-checkpoint-new"
 AMBIGUOUS_TICKERS = {
     'A', 'AM', 'BE', 'GO', 'IT', 'SO', 'AT', 'BY', 'ON', 'UP', 'IF', 'IS', 'AS', 'OR', 'TV', 'AI', 'AN', 'F', 'ALL', 'ARE', 'CAN', 'CAR', 'CAT', 'EAR', 'EYE', 'FUN', 'GET', 'HAS', 'HER', 'JOB', 'LOW', 'MAN', 'NEW', 'NOW', 'OLD', 'ONE',  'OUT', 'OWN', 'PAY', 'RUN', 'SAY', 'SEE', 'SHE', 'SIX', 'TEN', 'THE', 'TOO', 'TOP', 'TRY', 'TWO', 'USE', 'WAY', 'WHY', 'WIN', 'YES', 'YET', 'YOU', 'OLED', 'LOVE'
 }
@@ -100,8 +103,10 @@ def extract_tickers_from_text(text: str) -> List[str]:
 nlp_broadcast = None
 
 class SparkRedditProcessor:
-    def __init__(self):
+    def __init__(self, max_retries=5):
         self.spark = None
+        self.max_retries = max_retries
+        self.retry_count = 0
         self.setup_spark()
         
     def setup_spark(self):
@@ -111,6 +116,11 @@ class SparkRedditProcessor:
             .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0") \
             .config("spark.sql.adaptive.enabled", "true") \
             .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
+            .config("spark.executor.heartbeatInterval", "30s") \
+            .config("spark.network.timeout", "300s") \
+            .config("spark.executor.heartbeat.maxFailures", "10") \
+            .config("spark.sql.streaming.stopGracefullyOnShutdown", "true") \
+            .config("spark.sql.execution.arrow.pyspark.enabled", "false") \
             .getOrCreate()
         
         self.spark.sparkContext.setLogLevel("WARN")
@@ -123,6 +133,36 @@ class SparkRedditProcessor:
 
         print("✅ Spark session created successfully")
         print("✅ SpaCy model broadcasted to workers")
+
+    def cleanup_checkpoint(self):
+        """Remove corrupted checkpoint directory"""
+        try:
+            if os.path.exists(CHECKPOINT_DIR):
+                shutil.rmtree(CHECKPOINT_DIR)
+                print(f"🧹 Cleaned up checkpoint directory: {CHECKPOINT_DIR}")
+        except Exception as e:
+            print(f"⚠️  Warning: Could not clean checkpoint: {e}")
+
+    def wait_with_backoff(self):
+        """Wait with exponential backoff between retries"""
+        delay = min(300, 10 * (2 ** self.retry_count))  # Cap at 5 minutes
+        print(f"⏳ Waiting {delay}s before retry {self.retry_count + 1}/{self.max_retries}")
+        time.sleep(delay)
+
+    def check_kafka_health(self):
+        """Basic Kafka connectivity check"""
+        try:
+            from kafka import KafkaProducer
+            producer = KafkaProducer(
+                bootstrap_servers=[KAFKA_BOOTSTRAP_SERVERS],
+                value_serializer=lambda x: x.encode('utf-8'),
+                request_timeout_ms=5000
+            )
+            producer.close()
+            return True
+        except Exception as e:
+            print(f"❌ Kafka health check failed: {e}")
+            return False
     
     def get_reddit_data_schema(self):
         return StructType([
@@ -143,7 +183,7 @@ class SparkRedditProcessor:
             .option("startingOffsets", "latest") \
             .option("failOnDataLoss", "false") \
             .load()
-        
+
         print(f"📖 Reading from Kafka topic: {REDDIT_DATA_TOPIC}")
         
         reddit_schema = self.get_reddit_data_schema()
@@ -201,7 +241,7 @@ class SparkRedditProcessor:
             .format("kafka") \
             .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS) \
             .option("topic", TICKER_MENTIONS_TOPIC) \
-            .option("checkpointLocation", "/tmp/spark-checkpoint-new") \
+            .option("checkpointLocation", CHECKPOINT_DIR) \
             .outputMode("append") \
             .trigger(processingTime="1 minute") \
             .start()
@@ -216,10 +256,60 @@ class SparkRedditProcessor:
             query.stop()
             self.spark.stop()
             print("✅ Spark streaming stopped successfully")
+            raise  # Re-raise to prevent retry on manual stop
+        except Exception as e:
+            print(f"❌ Streaming error: {e}")
+            print("🔄 Attempting graceful shutdown...")
+            try:
+                query.stop()
+                self.spark.stop()
+            except:
+                pass
+            raise  # Re-raise for retry logic
+
+    def run_with_auto_restart(self):
+        """Main method with auto-restart logic"""
+        print(f"🚀 Starting Spark processor with auto-restart (max {self.max_retries} retries)")
+
+        while self.retry_count <= self.max_retries:
+            try:
+                if self.retry_count > 0:
+                    print(f"🔄 Restart attempt {self.retry_count}/{self.max_retries}")
+
+                    # Health checks before restart
+                    if not self.check_kafka_health():
+                        print("❌ Kafka not available, waiting before retry...")
+                        self.wait_with_backoff()
+                        self.retry_count += 1
+                        continue
+
+                    # Cleanup and reinitialize
+                    self.cleanup_checkpoint()
+                    self.setup_spark()
+
+                # Start processing
+                self.process_stream()
+                print("✅ Streaming completed successfully")
+                break
+
+            except KeyboardInterrupt:
+                print("\n⏹️  Manual stop - no restart")
+                break
+            except Exception as e:
+                self.retry_count += 1
+                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                print(f"❌ [{timestamp}] Attempt {self.retry_count} failed: {e}")
+
+                if self.retry_count <= self.max_retries:
+                    self.wait_with_backoff()
+                else:
+                    print(f"💥 Max retries ({self.max_retries}) exceeded. Giving up.")
+                    print("💡 Check logs, Kafka connectivity, and system resources")
+                    break
 
 def main():
     processor = SparkRedditProcessor()
-    processor.process_stream()
+    processor.run_with_auto_restart()
 
 if __name__ == "__main__":
     main()
