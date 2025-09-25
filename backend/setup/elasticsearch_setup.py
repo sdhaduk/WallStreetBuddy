@@ -24,7 +24,7 @@ def wait_for_elasticsearch():
     return False
 
 def create_ilm_policy():
-    """Create Index Lifecycle Management policy for 7-day data retention"""
+    """Create Index Lifecycle Management policy for 8-day data retention"""
     policy = {
         "policy": {
             "phases": {
@@ -56,6 +56,42 @@ def create_ilm_policy():
         return True
     else:
         print(f"❌ Failed to create ILM policy: {response.status_code}")
+        print(f"Error: {response.text}")
+        return False
+
+def create_analysis_ilm_policy():
+    """Create Index Lifecycle Management policy for 4-day analysis report retention"""
+    policy = {
+        "policy": {
+            "phases": {
+                "hot": {
+                    "actions": {
+                        "set_priority": {
+                            "priority": 50
+                        }
+                    }
+                },
+                "delete": {
+                    "min_age": "4d",
+                    "actions": {
+                        "delete": {}
+                    }
+                }
+            }
+        }
+    }
+
+    response = requests.put(
+        f"{ELASTICSEARCH_URL}/_ilm/policy/stock-analysis-policy",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(policy)
+    )
+
+    if response.status_code in [200, 201]:
+        print("✅ Analysis ILM policy created successfully!")
+        return True
+    else:
+        print(f"❌ Failed to create analysis ILM policy: {response.status_code}")
         print(f"Error: {response.text}")
         return False
 
@@ -131,6 +167,70 @@ def create_index_template():
         return True
     else:
         print(f"❌ Failed to create index template: {response.status_code}")
+        print(f"Error: {response.text}")
+        return False
+
+def create_analysis_index_template():
+    """Create index template for stock-analysis indices for AI-generated reports"""
+    template = {
+        "index_patterns": ["stock-analysis-*"],
+        "template": {
+            "settings": {
+                "number_of_shards": 1,
+                "number_of_replicas": 0,
+                "refresh_interval": "30s",
+                "index.lifecycle.name": "stock-analysis-policy",
+                "index.lifecycle.rollover_alias": "stock-analysis"
+            },
+            "mappings": {
+                "properties": {
+                    "@timestamp": {
+                        "type": "date"
+                    },
+                    "ticker": {
+                        "type": "keyword"
+                    },
+                    "generation_time": {
+                        "type": "date"
+                    },
+                    "report_content": {
+                        "type": "text",
+                        "analyzer": "standard",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 32766
+                            }
+                        }
+                    },
+                    "status": {
+                        "type": "keyword"
+                    },
+                    "generation_duration_ms": {
+                        "type": "integer"
+                    },
+                    "model_used": {
+                        "type": "keyword"
+                    },
+                    "tokens_used": {
+                        "type": "integer"
+                    }
+                }
+            }
+        }
+    }
+
+    response = requests.put(
+        f"{ELASTICSEARCH_URL}/_index_template/stock-analysis-template",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(template)
+    )
+
+    if response.status_code in [200, 201]:
+        print("✅ Analysis index template created successfully!")
+        return True
+    else:
+        print(f"❌ Failed to create analysis index template: {response.status_code}")
         print(f"Error: {response.text}")
         return False
 
@@ -228,23 +328,34 @@ def create_sample_queries():
 def main():
     if not wait_for_elasticsearch():
         return
-    
-    print("🔄 Setting up Elasticsearch for ticker data...")
-    
+
+    print("🔄 Setting up Elasticsearch for ticker data and analysis reports...")
+
     success = True
+
+    # Setup ticker mentions infrastructure
     if not create_ilm_policy():
         success = False
-    
+
     if not create_index_template():
         success = False
-    
+
+    # Setup analysis reports infrastructure
+    if not create_analysis_ilm_policy():
+        success = False
+
+    if not create_analysis_index_template():
+        success = False
+
     if success:
         create_sample_queries()
         print("\n🎉 Elasticsearch setup completed successfully!")
         print(f"🔍 Elasticsearch URL: {ELASTICSEARCH_URL}")
-        print("📊 Index pattern: ticker-mentions-YYYY.MM.DD")
-        print("🗑️  Data retention: 7 days (automatic deletion)")
-        print("📈 Optimized for ticker aggregations and time-series queries")
+        print("📊 Ticker Index pattern: ticker-mentions-YYYY.MM.DD")
+        print("📋 Analysis Index pattern: stock-analysis-YYYY.MM.DD")
+        print("🗑️  Ticker data retention: 8 days (automatic deletion)")
+        print("🗑️  Analysis data retention: 4 days (automatic deletion)")
+        print("📈 Optimized for ticker aggregations and analysis retrieval")
     else:
         print("❌ Setup failed!")
 
