@@ -8,7 +8,7 @@ import uvicorn
 import logging
 
 from api.config import settings
-from api.routers import health, ticker
+from api.routers import health, ticker, analysis
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -33,6 +33,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router, prefix=settings.api_prefix, tags=["health"])
 app.include_router(ticker.router, prefix=settings.api_prefix, tags=["ticker"])
+app.include_router(analysis.router, prefix=settings.api_prefix, tags=["analysis"])
 
 @app.get("/")
 async def root():
