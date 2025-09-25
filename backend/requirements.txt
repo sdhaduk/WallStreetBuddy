@@ -8,3 +8,5 @@ spacy==3.8.2
 fastapi[standard]==0.116.0
 elasticsearch==8.11.0
 pydantic-settings==2.10.1
+yfinance==0.2.66
+pydantic-ai-slim[openai]==1.0.10
