@@ -8,6 +8,7 @@ import os
 import logging
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
+import yfinance as yf
 
 load_dotenv()
 
@@ -54,27 +55,36 @@ class StockAnalysisService:
     def __init__(self, max_concurrent_requests: int = 3):
         self.agent = agent
         self.semaphore = asyncio.Semaphore(max_concurrent_requests)
+    
+    def is_equity(self, symbol: str) -> bool:
+        info = yf.Ticker(symbol).info
+        
+        quote_type = (info.get("quoteType") or "").upper()
+        legal_type = (info.get("legalType") or "").lower()
+        type_disp = (info.get("typeDisp") or "").lower()
+    
+        if quote_type == "EQUITY":
+            return True
+    
+        if any(s in legal_type for s in ["common stock", "corporation", "ordinary share"]):
+            return True
+        if any(s in type_disp for s in ["equity", "common stock", "corporation"]):
+            return True
+    
+        return False
 
     async def generate_report(self, symbol: str) -> str:
         """Generate analysis report for a stock symbol using async agent.run()"""
         async with self.semaphore:
             try:
                 logger.info(f"Generating report for {symbol}")
-
-                # Special handling for ETFs
-                symbol_upper = symbol.upper()
-                if symbol_upper == "SPY":
-                    logger.info(f"Special handling for SPY - returning custom message")
-                    return "Its SPY buddy."
-                elif symbol_upper == "QQQM":
-                    logger.info(f"Special handling for QQQM - returning custom message")
-                    return "Its QQQM buddy."
-
-                # Generate normal analysis report
-                prompt = f"Generate an executive report for {symbol}"
-                result = await self.agent.run(prompt)
-                logger.info(f"Successfully generated report for {symbol}")
-                return result.output
+                if self.is_equity(symbol):
+                    prompt = f"Generate an executive report for {symbol}"
+                    result = await self.agent.run(prompt)
+                    logger.info(f"Successfully generated report for {symbol}")
+                    return result.output
+                else:
+                    return f"No report for non-equity tickers."
             except Exception as e:
                 logger.error(f"Report generation failed for {symbol}: {e}")
                 raise
