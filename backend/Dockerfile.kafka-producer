@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy minimal requirements and install dependencies
+COPY requirements-kafka-producer.txt .
+RUN pip install --no-cache-dir -r requirements-kafka-producer.txt
+
+# Copy application code
+COPY pipeline/kafka_producer.py pipeline/
+COPY pipeline/ticker/ pipeline/ticker/
+
+# Create __init__.py files for Python modules
+RUN touch pipeline/__init__.py
+RUN touch pipeline/ticker/__init__.py
+
+# Set Python path to include pipeline modules
+ENV PYTHONPATH=/app
+
+# Run the kafka producer
+CMD ["python", "pipeline/kafka_producer.py"]
