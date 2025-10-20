@@ -247,8 +247,7 @@ async def store_analysis_report(es: Elasticsearch, ticker: str, report_content: 
         "generation_time": now.isoformat(),
         "report_content": report_content,
         "status": "completed",
-        "model_used": "gpt-4o",  # Update based on your model
-        "generation_duration_ms": 0  # Could be tracked if needed
+        "model_used": "gpt-5",
     }
 
     # Use date-based index naming

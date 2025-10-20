@@ -1,6 +1,7 @@
 """
 WallStreetBuddy FastAPI Application
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -9,16 +10,47 @@ import logging
 
 from api.config import settings
 from api.routers import health, ticker, analysis
+from api.services.scheduler_service import scheduler_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    FastAPI lifespan context manager
+    Handles startup and shutdown events
+    """
+    
+    logger.info("🚀 Starting WallStreetBuddy FastAPI application")
+
+    try:
+        # Start the scheduler service
+        await scheduler_service.start()
+        logger.info("✅ Scheduler service started successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to start scheduler service: {e}")
+        raise
+
+    yield  # FastAPI application runs here
+
+    logger.info("🛑 Shutting down WallStreetBuddy FastAPI application")
+
+    try:
+        await scheduler_service.stop()
+        logger.info("✅ Scheduler service stopped successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to stop scheduler service: {e}")
+
+
 app = FastAPI(
     title=settings.api_title,
     version=settings.api_version,
     description=settings.api_description,
-    debug=settings.debug
+    debug=settings.debug,
+    lifespan=lifespan
 )
 
 # Add CORS middleware
