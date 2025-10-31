@@ -1,3 +1,6 @@
+# Spark Processor v2 - Precompiled Regex + Global Caching Optimization
+# Expected improvement: 5-10% performance gain over v1
+
 import re
 import time
 import shutil
@@ -14,6 +17,10 @@ from dotenv import load_dotenv
 import logging
 import signal
 import sys
+
+# v2 Optimization: Precompiled regex patterns
+DOLLAR_PATTERN = re.compile(r'\$([A-Z]{1,5})\b')
+REGULAR_PATTERN = re.compile(r'\b([A-Z]{2,5})\b')
 
 logging.basicConfig(
     level=logging.INFO,
@@ -46,61 +53,79 @@ def extract_tickers_from_text(text: str) -> List[str]:
     if not text:
         return []
 
-    # Import ticker functions inside UDF so Spark workers can access them
-    import sys
-    import os
-    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-    from ticker.ticker_manager import is_valid_ticker, get_ticker_from_company_name
+    # v2 Optimization: Initialize ticker manager once per worker
+    global TICKER_MANAGER
+    if TICKER_MANAGER is None:
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        from ticker.ticker_manager import TickerManager
+        TICKER_MANAGER = TickerManager()
 
     tickers = set()
-    dollar_pattern = r'\$([A-Z]{1,5})\b'
-    dollar_tickers = re.findall(dollar_pattern, text)
+
+    # v2 Optimization: Use precompiled patterns
+    dollar_tickers = DOLLAR_PATTERN.findall(text)
 
     dollar_positions = set()
-    for match in re.finditer(dollar_pattern, text):
+    for match in DOLLAR_PATTERN.finditer(text):
         for pos in range(match.start(), match.end()):
             dollar_positions.add(pos)
 
     for ticker in dollar_tickers:
-        if is_valid_ticker(ticker):
+        # v2 Optimization: Use cached ticker validation
+        if ticker in TICKER_CACHE:
+            is_valid = TICKER_CACHE[ticker]
+        else:
+            is_valid = TICKER_MANAGER.is_valid_ticker(ticker)
+            TICKER_CACHE[ticker] = is_valid
+
+        if is_valid:
             tickers.add(ticker)
 
-    regular_pattern = r'\b([A-Z]{2,5})\b'
     context_score = None
-    
-    for match in re.finditer(regular_pattern, text):
+
+    # v2 Optimization: Use precompiled pattern
+    for match in REGULAR_PATTERN.finditer(text):
         if any(pos in dollar_positions for pos in range(match.start(), match.end())):
             continue
         ticker = match.group(1)
-        
+
         if ticker in tickers:
             continue
-            
-        if not is_valid_ticker(ticker):
+
+        # v2 Optimization: Use cached ticker validation
+        if ticker in TICKER_CACHE:
+            is_valid = TICKER_CACHE[ticker]
+        else:
+            is_valid = TICKER_MANAGER.is_valid_ticker(ticker)
+            TICKER_CACHE[ticker] = is_valid
+
+        if not is_valid:
             continue
-        
+
         if ticker in REDDIT_ONLY_TICKERS:
             continue
-        
+
         if ticker in AMBIGUOUS_TICKERS:
             if context_score is None:
-                financial_keyword_count = sum(1 for keyword in FINANCIAL_KEYWORDS 
+                financial_keyword_count = sum(1 for keyword in FINANCIAL_KEYWORDS
                                              if keyword in text.lower())
                 word_count = len(text.split())
                 context_score = financial_keyword_count / max(word_count, 1) * 100
-            
+
             if len(ticker) == 2:
-                required_score = 90  
+                required_score = 90
             elif len(ticker) == 3:
-                required_score = 60   
+                required_score = 60
             else:
-                required_score = 40  
-            
+                required_score = 40
+
             if context_score < required_score:
                 continue
-        
+
         tickers.add(ticker)
-    
+
     try:
         global nlp_broadcast
         if nlp_broadcast is not None:
@@ -109,12 +134,19 @@ def extract_tickers_from_text(text: str) -> List[str]:
 
             for ent in doc.ents:
                 if ent.label_ == "ORG":
-                    ticker = get_ticker_from_company_name(ent.text)
+                    # v2 Optimization: Use cached company lookups
+                    company_name = ent.text
+                    if company_name in COMPANY_CACHE:
+                        ticker = COMPANY_CACHE[company_name]
+                    else:
+                        ticker = TICKER_MANAGER.get_ticker_from_company_name(company_name)
+                        COMPANY_CACHE[company_name] = ticker
+
                     if ticker:
                         tickers.add(ticker)
     except Exception:
         pass
-    
+
     return list(tickers)
 
 logger.info("Starting Spark Processor.")
@@ -122,6 +154,11 @@ logger.info(f"KAFKA_BOOTSTRAP_SERVERS, {KAFKA_BOOTSTRAP_SERVERS}")
 
 # Global broadcast variable for SpaCy model
 nlp_broadcast = None
+
+# v2 Optimization: Global caching
+TICKER_CACHE = {}
+COMPANY_CACHE = {}
+TICKER_MANAGER = None
 
 class SparkRedditProcessor:
     def __init__(self, max_retries=5):
