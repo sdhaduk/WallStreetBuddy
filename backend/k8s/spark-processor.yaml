@@ -24,7 +24,7 @@ spec:
           value: "/tmp/spark-checkpoint-new"
         resources:
           requests:
-            cpu: 250m
+            cpu: 500m
             memory: 1.5Gi
           limits:
             cpu: 2000m
