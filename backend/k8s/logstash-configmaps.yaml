@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-pipeline
+  namespace: wallstreetbuddy
+data:
+  ticker-mentions.conf: |
+    input {
+      kafka {
+        bootstrap_servers => "kafka:29092"
+        topics => ["ticker-mentions"]
+        consumer_threads => 1
+        decorate_events => "basic"
+        codec => json
+        group_id => "logstash-ticker-group"
+        auto_offset_reset => "latest"
+      }
+    }
+
+    filter {
+      # Parse the JSON message
+      if [@metadata][kafka][topic] == "ticker-mentions" {
+        # Add timestamp for Elasticsearch
+        date {
+          match => [ "timestamp", "ISO8601" ]
+          target => "@timestamp"
+        }
+
+        # Add processed timestamp
+        date {
+          match => [ "processed_timestamp", "yyyy-MM-dd HH:mm:ss.SSS" ]
+          target => "processed_at"
+        }
+
+        # Add date-only field for daily aggregations
+        mutate {
+          add_field => { "date_only" => "%{+YYYY-MM-dd}" }
+        }
+
+        # Add metadata fields
+        mutate {
+          add_field => { "kafka_topic" => "%{[@metadata][kafka][topic]}" }
+          add_field => { "kafka_partition" => "%{[@metadata][kafka][partition]}" }
+          add_field => { "kafka_offset" => "%{[@metadata][kafka][offset]}" }
+          add_field => { "index_date" => "%{+YYYY.MM.dd}" }
+        }
+
+        # Convert ticker_count to integer
+        mutate {
+          convert => { "ticker_count" => "integer" }
+        }
+      }
+    }
+
+    output {
+      elasticsearch {
+        hosts => ["elasticsearch:9200"]
+        index => "ticker-mentions-%{+YYYY.MM.dd}"
+        document_type => "_doc"
+        document_id => "%{id}"
+      }
+
+      # Debug output (optional)
+      stdout {
+        codec => rubydebug
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: wallstreetbuddy
+data:
+  pipelines.yml: |
+    - pipeline.id: ticker-mentions
+      path.config: "/usr/share/logstash/pipeline/ticker-mentions.conf"
+  logstash.yml: |
+    http.host: "0.0.0.0"
+    xpack.monitoring.enabled: false
+    pipeline.workers: 1
+    pipeline.batch.size: 15
+    pipeline.batch.delay: 300000

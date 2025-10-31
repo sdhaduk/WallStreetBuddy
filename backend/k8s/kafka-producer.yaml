@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-producer
+  namespace: wallstreetbuddy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-producer
+  template:
+    metadata:
+      labels:
+        app: kafka-producer
+    spec:
+      containers:
+      - name: kafka-producer
+        image: gcr.io/wallstreetbuddy/kafka-producer:latest
+        env:
+        - name: REDDIT_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: reddit-credentials
+              key: client-id
+        - name: REDDIT_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: reddit-credentials
+              key: client-secret
+        - name: REDDIT_CLIENT_AGENT
+          valueFrom:
+            secretKeyRef:
+              name: reddit-credentials
+              key: client-agent
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "kafka:29092"
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-producer
+  namespace: wallstreetbuddy
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: kafka-producer
