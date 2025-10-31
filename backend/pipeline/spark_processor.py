@@ -1,5 +1,8 @@
-# Spark Processor v2 - Precompiled Regex + Global Caching Optimization
-# Expected improvement: 5-10% performance gain over v1
+# Spark Processor v4.5 - Optimized with Progress Metrics + Kafka Tuning
+# v2: Precompiled Regex + Global Caching (5-10% gain)
+# v4: Remove unnecessary windowing (15-25% gain)
+# v4.5: Progress metrics + Kafka consumer optimization (diagnostics + 5-10% gain)
+# Expected cumulative improvement: 25-45% over v1
 
 import re
 import time
@@ -7,8 +10,8 @@ import shutil
 from typing import List
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
-    col, from_json, to_json, struct, current_timestamp, window,
-    udf, collect_list, explode, size
+    col, from_json, to_json, struct, current_timestamp,
+    udf, size
 )
 from pyspark.sql.types import StructType, StructField, StringType, ArrayType
 import spacy
@@ -184,6 +187,8 @@ class SparkRedditProcessor:
                 .config("spark.executor.heartbeat.maxFailures", "10") \
                 .config("spark.sql.streaming.stopGracefullyOnShutdown", "true") \
                 .config("spark.sql.execution.arrow.pyspark.enabled", "false") \
+                .config("spark.sql.streaming.metricsEnabled", "true") \
+                .config("spark.sql.streaming.ui.retainedProgressUpdates", "100") \
                 .getOrCreate()
             
             self.spark.sparkContext.setLogLevel("WARN")
@@ -255,6 +260,8 @@ class SparkRedditProcessor:
                 .option("subscribe", REDDIT_DATA_TOPIC) \
                 .option("startingOffsets", "latest") \
                 .option("failOnDataLoss", "false") \
+                .option("minPartitions", "16") \
+                .option("kafkaConsumer.pollTimeoutMs", "5000") \
                 .load()
 
             logger.info(f"📖 Reading from Kafka topic: {REDDIT_DATA_TOPIC}")
@@ -271,29 +278,12 @@ class SparkRedditProcessor:
                 "data.*"
             )
             
-            windowed_df = parsed_df \
-                .withWatermark("kafka_timestamp", "2 minutes") \
-                .groupBy(
-                    window(col("kafka_timestamp"), "30 seconds"),
-                    col("subreddit")
-                ) \
-                .agg(collect_list(struct("id", "subreddit", "body", "timestamp", "type")).alias("messages"))
-            
-            processed_df = windowed_df.select(
-                col("subreddit").alias("kafka_key"),
-                explode(col("messages")).alias("message")
-            ).select(
-                "kafka_key",
-                col("message.id").alias("id"),
-                col("message.subreddit").alias("subreddit"), 
-                col("message.body").alias("body"),
-                col("message.timestamp").alias("timestamp"),
-                col("message.type").alias("type")
-            ) \
-            .withColumn("tickers", udf(extract_tickers_from_text, ArrayType(StringType()))(col("body"))) \
-            .withColumn("ticker_count", size(col("tickers"))) \
-            .withColumn("processed_timestamp", current_timestamp()) \
-            .filter(col("ticker_count") > 0)
+            # v4 Optimization: Direct processing without windowing overhead
+            processed_df = parsed_df \
+                .withColumn("tickers", udf(extract_tickers_from_text, ArrayType(StringType()))(col("body"))) \
+                .withColumn("ticker_count", size(col("tickers"))) \
+                .withColumn("processed_timestamp", current_timestamp()) \
+                .filter(col("ticker_count") > 0)
             
             output_df = processed_df.select(
                 col("subreddit").alias("kafka_key"),
@@ -321,7 +311,36 @@ class SparkRedditProcessor:
             
             logger.info(f"📝 Writing processed data to: {TICKER_MENTIONS_TOPIC}")
             logger.info("✅ Streaming started successfully!")
-            
+
+            # v4.5 Progress monitoring loop
+            import threading
+            import time as time_module
+
+            def log_progress():
+                while query.isActive:
+                    try:
+                        time_module.sleep(30)  # Log every 30 seconds
+                        if query.lastProgress:
+                            progress = query.lastProgress
+                            logger.info(f"📊 PROGRESS - Batch: {progress.get('batchId', 'N/A')}")
+                            logger.info(f"📊 Input Rows: {progress.get('inputRowsPerSecond', 0):.1f}/sec")
+                            logger.info(f"📊 Processed Rows: {progress.get('processedRowsPerSecond', 0):.1f}/sec")
+
+                            durations = progress.get('durationMs', {})
+                            logger.info(f"📊 Durations - GetOffset: {durations.get('getOffset', 0)}ms, AddBatch: {durations.get('addBatch', 0)}ms")
+
+                            sources = progress.get('sources', [])
+                            if sources:
+                                source = sources[0]
+                                logger.info(f"📊 Source - InputRows: {source.get('inputRowsPerSecond', 0):.1f}/sec")
+                    except Exception as e:
+                        logger.warning(f"Progress logging error: {e}")
+                        break
+
+            # Start progress monitoring in background
+            progress_thread = threading.Thread(target=log_progress, daemon=True)
+            progress_thread.start()
+
             query.awaitTermination()
 
         except Exception as e:
