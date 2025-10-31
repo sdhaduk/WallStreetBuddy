@@ -11,12 +11,12 @@ KAFKA_BOOTSTRAP_SERVERS = ['localhost:9092']
 TOPICS = [
     {
         'name': 'reddit-data',
-        'num_partitions': 3,
+        'num_partitions': 16,
         'replication_factor': 1
     },
     {
-        'name': 'ticker-mentions', 
-        'num_partitions': 3,
+        'name': 'ticker-mentions',
+        'num_partitions': 16,
         'replication_factor': 1
     }
 ]
