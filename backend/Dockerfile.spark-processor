@@ -43,6 +43,11 @@ COPY pipeline/ticker/ pipeline/ticker/
 RUN touch pipeline/__init__.py
 RUN touch pipeline/ticker/__init__.py
 
+# Fix ticker cache directory permissions
+RUN mkdir -p pipeline/ticker/constants && \
+    chmod 755 pipeline/ticker/constants && \
+    find pipeline/ticker/constants -name "*.json" -exec chmod 666 {} \;
+
 # Create checkpoint directory
 RUN mkdir -p /tmp/spark-checkpoint-new
 

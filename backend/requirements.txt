@@ -12,3 +12,4 @@ yfinance==0.2.66
 pydantic-ai-slim[openai]==1.0.10
 apscheduler==3.10.4
 httpx==0.28.1
+schedule==1.2.0
