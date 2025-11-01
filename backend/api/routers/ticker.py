@@ -255,3 +255,68 @@ async def get_comments(
         logger.error(f"Comments query failed: {e}")
         raise HTTPException(status_code=500, detail="Comments query failed")
 
+
+@router.get("/home-data")
+async def get_home_data():
+    """
+    Get top 10 tickers for Home page - aggregated across all subreddits
+    Uses same query as analysis job: completed 3-day batches (day -6 to day -3)
+    This ensures Home page displays tickers that have analysis reports available
+    """
+    try:
+        # Use exact same query as analysis batch job - no subreddit filter
+        query = {
+            "range": {
+                "@timestamp": {
+                    "gte": "now-6d/d",  # Start 6 days ago at start of day
+                    "lt": "now-3d/d"    # End 3 days ago at start of day
+                }
+            }
+        }
+
+        es = Elasticsearch([settings.elasticsearch_url])
+        resp = es.search(
+            index="ticker-mentions-*",
+            size=0,
+            query=query,
+            aggregations={
+                "ticker_mentions": {
+                    "terms": {
+                        "field": "tickers",
+                        "size": 10,
+                        "order": {"_count": "desc"}
+                    }
+                }
+            }
+        )
+
+        data = resp.body
+        buckets = data.get("aggregations", {}).get("ticker_mentions", {}).get("buckets", [])
+
+        # Get total mentions count
+        total_mentions = data.get("hits", {}).get("total", {})
+        if isinstance(total_mentions, dict):
+            total_mentions_count = total_mentions.get("value", 0)
+        else:
+            total_mentions_count = total_mentions or 0
+
+        # Format data for frontend
+        result = []
+        for bucket in buckets:
+            result.append({
+                "ticker": bucket["key"],
+                "mentions": bucket["doc_count"]
+            })
+
+        return {
+            "status": "success",
+            "data": result,
+            "total_mentions": total_mentions_count,
+            "period": "Last completed 3-day batch (day -6 to day -3)",
+            "subreddits": "all"
+        }
+
+    except Exception as e:
+        logger.error(f"Home data query failed: {e}")
+        raise HTTPException(status_code=500, detail="Home data query failed")
+
