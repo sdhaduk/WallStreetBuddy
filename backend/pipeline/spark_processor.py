@@ -1,12 +1,14 @@
-# Spark Processor v4.5 - Optimized with Progress Metrics + Kafka Tuning
+# Spark Processor v4.7 - v4.5 Direct Processing + Daily Ticker Scheduler
 # v2: Precompiled Regex + Global Caching (5-10% gain)
-# v4: Remove unnecessary windowing (15-25% gain)
-# v4.5: Progress metrics + Kafka consumer optimization (diagnostics + 5-10% gain)
-# Expected cumulative improvement: 25-45% over v1
+# v4.5: Direct processing + Progress metrics + Kafka optimization (25-45% gain)
+# v4.7: Added daily ticker cache updates at midnight (maintenance automation)
+# Expected improvement: 25-45% over v1 + fresh ticker data daily
 
 import re
 import time
 import shutil
+import schedule
+import threading
 from typing import List
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
@@ -163,6 +165,43 @@ TICKER_CACHE = {}
 COMPANY_CACHE = {}
 TICKER_MANAGER = None
 
+# Daily Ticker Cache Update Scheduler
+def daily_ticker_update():
+    """Daily ticker cache update job at midnight"""
+    logger.info("🔄 Starting daily ticker cache update...")
+    try:
+        global TICKER_MANAGER
+        if TICKER_MANAGER is None:
+            # Initialize TICKER_MANAGER if not already done
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+            from ticker.ticker_manager import TickerManager
+            TICKER_MANAGER = TickerManager()
+            logger.info("✅ TICKER_MANAGER initialized for scheduler")
+
+        success = TICKER_MANAGER.force_update()
+        if success:
+            logger.info("✅ Daily ticker cache update completed")
+        else:
+            logger.error("❌ Daily ticker cache update failed")
+    except Exception as e:
+        logger.error(f"❌ Daily ticker cache update error: {e}")
+
+def run_ticker_scheduler():
+    """Background scheduler thread for ticker updates"""
+    logger.info("🕐 Starting ticker scheduler thread...")
+    while True:
+        try:
+            schedule.run_pending()
+            time.sleep(21600)  # Check every 6 hours
+        except Exception as e:
+            logger.error(f"❌ Ticker scheduler error: {e}")
+            time.sleep(21600)  # Continue running even on error
+
+# Schedule ticker update daily at midnight
+schedule.every().day.at("00:00").do(daily_ticker_update)
+
 class SparkRedditProcessor:
     def __init__(self, max_retries=5):
         logger.info("Initializing SparkRedditProcessor")
@@ -171,6 +210,11 @@ class SparkRedditProcessor:
             self.max_retries = max_retries
             self.retry_count = 0
             self.setup_spark()
+
+            # Start ticker scheduler in background thread
+            ticker_scheduler_thread = threading.Thread(target=run_ticker_scheduler, daemon=True)
+            ticker_scheduler_thread.start()
+            logger.info("🕐 Ticker scheduler thread started")
 
         except Exception as e:
             logger.error(f"Failed to initialize {e}")
