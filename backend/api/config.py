@@ -8,12 +8,14 @@ class Settings(BaseSettings):
     fastapi_host: str = "0.0.0.0"
     fastapi_port: int = 8000
     debug: bool = True
-    
+
     elasticsearch_url: str = "http://localhost:9200"
     elasticsearch_index_pattern: str = "ticker-mentions-*"
-    
-    allowed_origins: List[str] = ["*"]  # Allow all origins
-    
+
+    # CORS Configuration
+    allowed_origins: List[str] = ["*"]  # Allow all origins (restrict in production)
+
+    # API Configuration
     api_prefix: str = "/api"
     api_title: str = "WallStreetBuddy API"
     api_version: str = "1.0.0"
