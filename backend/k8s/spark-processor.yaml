@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: spark-processor
-        image: gcr.io/wallstreetbuddy/spark-processor:v4.5
+        image: gcr.io/wallstreetbuddy/spark-processor:v4.7
         imagePullPolicy: Always
         env:
         - name: KAFKA_BOOTSTRAP_SERVERS
