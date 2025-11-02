@@ -80,4 +80,4 @@ data:
     xpack.monitoring.enabled: false
     pipeline.workers: 1
     pipeline.batch.size: 15
-    pipeline.batch.delay: 300000
+    pipeline.batch.delay: 60000
