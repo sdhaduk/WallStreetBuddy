@@ -25,7 +25,7 @@ async def stock_analysis_job():
         base_url = f"http://{settings.fastapi_host}:{settings.fastapi_port}"
         endpoint_url = f"{base_url}{settings.api_prefix}/analysis/generate-batch"
 
-        timeout = httpx.Timeout(300.0)  # 5 minute timeout for AI generation
+        timeout = httpx.Timeout(1500.0)  # 25 minute timeout for AI generation (2.5 mins per report)
 
         async with httpx.AsyncClient(timeout=timeout) as client:
             logger.info(f"📡 Making request to {endpoint_url}")
