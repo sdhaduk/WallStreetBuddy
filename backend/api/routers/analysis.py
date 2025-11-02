@@ -59,7 +59,10 @@ async def generate_batch_analysis():
 
         if not buckets:
             logger.warning("No tickers found in last 3 days")
-            return {"status": "no_data", "message": "No tickers found in last 3 days"}
+            return {
+                "status": 200,
+                "message": "No tickers found in last 3 days"
+            }
 
         # Extract ticker symbols
         symbols = [bucket["key"] for bucket in buckets]
@@ -86,7 +89,7 @@ async def generate_batch_analysis():
         logger.info(f"Batch analysis completed: {successful_reports} successful, {failed_reports} failed")
 
         return {
-            "status": "completed",
+            "status": 201,
             "total_tickers": len(symbols),
             "successful_reports": successful_reports,
             "failed_reports": failed_reports,
@@ -123,11 +126,17 @@ async def get_latest_report(ticker: str):
         hits = resp.body.get("hits", {}).get("hits", [])
 
         if not hits:
-            raise HTTPException(status_code=404, detail=f"No analysis report found for {ticker}")
+            return {
+                "status": 200,
+                "ticker": ticker.upper(),
+                "generation_time": None,
+                "report_content": "Analysis report will be available after it completes generating... come back in 5 minutes.",
+                "report_status": "pending"
+            }
 
         report = hits[0]["_source"]
         return {
-            "status": "found",
+            "status": 200,
             "ticker": report.get("ticker"),
             "generation_time": report.get("generation_time"),
             "report_content": report.get("report_content"),
@@ -181,7 +190,7 @@ async def list_available_reports(days: int = 4):
             })
 
         return {
-            "status": "success",
+            "status": 200,
             "total_reports": len(reports),
             "days_searched": days,
             "reports": reports
@@ -218,7 +227,7 @@ async def generate_single_report(ticker: str):
         logger.info(f"Successfully generated and stored report for {ticker}")
 
         return {
-            "status": "completed",
+            "status": 201,
             "ticker": ticker,
             "generation_time": datetime.now().isoformat(),
             "message": f"Analysis report generated successfully for {ticker}"
