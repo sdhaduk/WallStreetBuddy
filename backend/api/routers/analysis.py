@@ -1,7 +1,7 @@
 """
 Stock Analysis endpoints for AI-generated reports
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from elasticsearch import Elasticsearch
 import logging
 from datetime import datetime
@@ -19,54 +19,49 @@ def get_elasticsearch_client():
 
 
 @router.post("/analysis/generate-batch")
-async def generate_batch_analysis():
+async def generate_batch_analysis(request: Request):
     """
     Internal endpoint to generate analysis reports for top 10 tickers from last 3 days
     This endpoint is intended to be called by the scheduler
     """
+    # Check for internal API key header
+    api_key = request.headers.get("X-Internal-API-Key")
+    if not api_key or api_key != settings.internal_api_key:
+        raise HTTPException(status_code=403, detail="Access denied: Invalid or missing internal API key")
+
     try:
-        # Get top 10 tickers from the existing ticker endpoint logic
+        # Get ticker symbols from the latest home batch data for perfect consistency
         es = get_elasticsearch_client()
 
-        # Query for top 10 tickers in the previous 3-day batch (day -6 to day -3)
-        # This matches the Home page logic: shows completed 3-day batches, not rolling window
-        query = {
-            "range": {
-                "@timestamp": {
-                    "gte": "now-6d/d",  # Start 6 days ago at start of day
-                    "lt": "now-3d/d"    # End 3 days ago at start of day
-                }
-            }
-        }
-
-        resp = es.search(
-            index="ticker-mentions-*",
-            size=0,
-            query=query,
-            aggregations={
-                "ticker_mentions": {
-                    "terms": {
-                        "field": "tickers",
-                        "size": 10,
-                        "order": {"_count": "desc"}
-                    }
-                }
-            }
+        # Get latest batch data (same as home page)
+        batch_resp = es.search(
+            index="home-batch-*",
+            size=1,
+            sort=[{"@timestamp": {"order": "desc"}}],
+            query={"match_all": {}}
         )
 
-        data = resp.body
-        buckets = data.get("aggregations", {}).get("ticker_mentions", {}).get("buckets", [])
+        batch_hits = batch_resp.body.get("hits", {}).get("hits", [])
 
-        if not buckets:
-            logger.warning("No tickers found in last 3 days")
+        if not batch_hits:
+            logger.warning("No batch data found for analysis")
             return {
                 "status": 200,
-                "message": "No tickers found in last 3 days"
+                "message": "No batch data available for analysis. Home batch job may not have run yet."
             }
 
-        # Extract ticker symbols
-        symbols = [bucket["key"] for bucket in buckets]
-        logger.info(f"Generating batch analysis for top {len(symbols)} tickers: {symbols}")
+        # Extract ticker symbols from batch data
+        batch_data = batch_hits[0]["_source"]
+        batch_id = batch_data.get("batch_id", "unknown")
+        symbols = [ticker["ticker"] for ticker in batch_data.get("top_tickers", [])]
+
+        if not symbols:
+            logger.warning(f"No tickers in batch data {batch_id}")
+            return {
+                "status": 200,
+                "message": f"No tickers found in batch {batch_id}"
+            }
+        logger.info(f"Generating batch analysis for {batch_id} - {len(symbols)} tickers: {symbols}")
 
         # Generate reports using the async service
         reports = await stock_analysis_service.generate_batch_reports(symbols)
