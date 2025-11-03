@@ -309,11 +309,9 @@ async def get_home_data():
             })
 
         return {
-            "status": "success",
+            "status": 200,
             "data": result,
             "total_mentions": total_mentions_count,
-            "period": "Last completed 3-day batch (day -6 to day -3)",
-            "subreddits": "all"
         }
 
     except Exception as e:
