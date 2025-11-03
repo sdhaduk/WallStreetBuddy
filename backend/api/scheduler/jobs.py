@@ -31,7 +31,9 @@ async def stock_analysis_job():
         async with httpx.AsyncClient(timeout=timeout) as client:
             logger.info(f"📡 Making request to {endpoint_url}")
 
-            response = await client.post(endpoint_url)
+            # Add internal API key header for security
+            headers = {"X-Internal-API-Key": settings.internal_api_key}
+            response = await client.post(endpoint_url, headers=headers)
             response.raise_for_status()
 
             result = response.json()
