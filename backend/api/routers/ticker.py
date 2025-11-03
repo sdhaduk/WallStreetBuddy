@@ -15,28 +15,6 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def format_timestamp(timestamp_str: str) -> str:
-    """
-    Convert timestamp to user-friendly format
-    Handles both processed_timestamp format ("2025-09-21 19:07:33.274") and ISO format
-    """
-    try:
-        # Handle processed_timestamp format: "YYYY-MM-DD HH:MM:SS.mmm"
-        if ' ' in timestamp_str and not 'T' in timestamp_str:
-            # Remove microseconds if present and parse
-            timestamp_clean = timestamp_str.split('.')[0]  # Remove .274 part
-            dt = datetime.strptime(timestamp_clean, "%Y-%m-%d %H:%M:%S")
-        else:
-            # Handle ISO format timestamps
-            dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-
-        # Format as: "Jan 15, 2024 at 2:30 PM"
-        return dt.strftime("%b %d, %Y at %I:%M %p")
-    except (ValueError, AttributeError) as e:
-        # Fallback to original timestamp if parsing fails
-        print(f"Timestamp parsing failed for '{timestamp_str}': {e}")
-        return timestamp_str
-
 
 @router.get("/top-10-filtered")
 async def top_10_filtered(timeframe: str = "3d", subreddit: str = "all"):
@@ -212,7 +190,7 @@ async def get_comments(
                 "id": source.get("id", hit["_id"]),
                 "body": source.get("body", ""),
                 "subreddit": source.get("subreddit", ""),
-                "timestamp": format_timestamp(source.get("processed_at", "")),
+                "raw_timestamp": source.get("processed_at", ""),
                 "tickers": source.get("tickers", [])
             })
             # Keep track of the last document's sort values for next cursor
