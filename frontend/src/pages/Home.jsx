@@ -3,28 +3,41 @@ import BarChart from '../components/BarChart'
 
 const Home = () => {
   const [latestBatchData, setLatestBatchData] = useState([])
+  const [totalMentions, setTotalMentions] = useState(0)
   const [loading, setLoading] = useState(true)
 
-  // Mock data for development - replace with API call later
+  // Fetch real data from API
   useEffect(() => {
-    const mockLatestBatch = [
-      { name: 'AAPL', mentions: 1250 },
-      { name: 'TSLA', mentions: 890 },
-      { name: 'NVDA', mentions: 750 },
-      { name: 'AMD', mentions: 620 },
-      { name: 'MSFT', mentions: 580 },
-      { name: 'GOOGL', mentions: 450 },
-      { name: 'AMZN', mentions: 380 },
-      { name: 'META', mentions: 320 },
-      { name: 'NFLX', mentions: 280 },
-      { name: 'INTC', mentions: 220 }
-    ]
+    const fetchHomeData = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('http://localhost:8000/api/home-data')
 
-    // Simulate API loading
-    setTimeout(() => {
-      setLatestBatchData(mockLatestBatch)
-      setLoading(false)
-    }, 500)
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const apiResponse = await response.json()
+
+        // Transform API data to match BarChart component format
+        // API returns: { status: 200, data: [...], total_mentions: ... }
+        const transformedData = apiResponse.data.map(ticker => ({
+          name: ticker.ticker,
+          mentions: ticker.mentions
+        }))
+
+        setLatestBatchData(transformedData)
+        setTotalMentions(apiResponse.total_mentions || 0)
+      } catch (error) {
+        console.error('Failed to fetch home data:', error)
+        // Fallback to empty array on error
+        setLatestBatchData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchHomeData()
   }, [])
 
   if (loading) {
@@ -61,6 +74,27 @@ const Home = () => {
     )
   }
 
+  // Show message if no data available
+  if (latestBatchData.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold">Latest Top 10 Stocks</h1>
+          <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results</p>
+        </div>
+
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-8 rounded-lg text-center">
+          <h3 className="text-xl font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+            📊 More data required
+          </h3>
+          <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
+            Waiting for the next 3-day batch to complete data collection
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -81,10 +115,10 @@ const Home = () => {
       <div className="bg-card p-4 rounded-lg border">
         <h3 className="font-semibold mb-2">Batch Information</h3>
         <div className="text-sm text-muted-foreground space-y-1">
-          <p>• Batch completed: 3 days ago</p>
-          <p>• Total posts analyzed: 2,341</p>
-          <p>• Total mentions: 15,420</p>
-          <p>• Analysis period: Jan 12-15, 2024</p>
+          <p>• Data period: Last completed 3-day batch (6-3 days ago)</p>
+          <p>• Top {latestBatchData.length} most mentioned tickers</p>
+          <p>• Total mentions: {totalMentions.toLocaleString()}</p>
+          <p>• Analysis reports available for each ticker</p>
         </div>
       </div>
 

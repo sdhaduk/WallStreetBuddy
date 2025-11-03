@@ -135,6 +135,49 @@ const CommentsModal = ({ isOpen, onClose }) => {
     fetchComments(true)
   }
 
+  // Function to convert UTC timestamp to local time
+  const formatLocalTime = (comment) => {
+    try {
+      const timestampToUse = comment.raw_timestamp
+
+      if (!timestampToUse) {
+        return 'No timestamp'
+      }
+
+      // Handle timestamp format: "YYYY-MM-DD HH:MM:SS.mmm"
+      let date
+      if (typeof timestampToUse === 'string') {
+        if (timestampToUse.includes(' ') && !timestampToUse.includes('T')) {
+          // Convert "YYYY-MM-DD HH:MM:SS.mmm" to ISO format
+          const isoString = timestampToUse.replace(' ', 'T') + 'Z'
+          date = new Date(isoString)
+        } else {
+          // Try parsing as-is
+          date = new Date(timestampToUse)
+        }
+      } else {
+        date = new Date(timestampToUse)
+      }
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'No timestamp'
+      }
+
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    } catch (error) {
+      return 'No timestamp'
+    }
+  }
+
+
   if (!isOpen) return null
 
   return (
@@ -339,7 +382,7 @@ const CommentsModal = ({ isOpen, onClose }) => {
 
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      <span>{comment.timestamp}</span>
+                      <span>{formatLocalTime(comment)}</span>
                     </div>
 
                     <div className="flex items-center gap-1">
