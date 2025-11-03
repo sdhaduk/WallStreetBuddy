@@ -67,14 +67,28 @@ class SchedulerService:
 
     async def _register_jobs(self):
         """Register all scheduled jobs"""
-        from ..scheduler.jobs import stock_analysis_job
+        from ..scheduler.jobs import stock_analysis_job, home_batch_data_job
 
-        # Stock Analysis Job - Every 3 days at 12:05 AM 
+        # Home Batch Data Job - Every 3 days at 12:00 AM (before analysis job)
+        self.scheduler.add_job(
+            home_batch_data_job,
+            trigger=CronTrigger(
+                hour=0,
+                minute=0,
+                day='*/3'
+            ),
+            id='home_batch_data',
+            name='Home Batch Data Generation',
+            max_instances=1,
+            replace_existing=True
+        )
+
+        # Stock Analysis Job - Every 3 days at 12:15 AM (15 minutes after batch job)
         self.scheduler.add_job(
             stock_analysis_job,
             trigger=CronTrigger(
                 hour=0,
-                minute=5,
+                minute=15,
                 day='*/3'
             ),
             id='stock_analysis_batch',
@@ -84,7 +98,8 @@ class SchedulerService:
         )
 
         logger.info("📅 Registered scheduled jobs:")
-        logger.info("  - Stock Analysis: Every 3 days at 12:05 AM")
+        logger.info("  - Home Batch Data: Every 3 days at 12:00 AM")
+        logger.info("  - Stock Analysis: Every 3 days at 12:15 AM")
 
     def _job_executed_listener(self, event):
         """Handle successful job execution"""
