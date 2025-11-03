@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     api_version: str = "1.0.0"
     api_description: str = "REST API for Reddit ticker mention analytics"
 
+    # Internal API Security (set via environment variable)
+    internal_api_key: str = ""  
+
     class Config:
         case_sensitive = False
 
