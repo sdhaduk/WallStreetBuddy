@@ -234,6 +234,108 @@ def create_analysis_index_template():
         print(f"Error: {response.text}")
         return False
 
+def create_home_batch_ilm_policy():
+    """Create ILM policy for home batch data with 30-day retention"""
+    policy = {
+        "policy": {
+            "phases": {
+                "hot": {
+                    "actions": {
+                        "rollover": {
+                            "max_size": "50GB",
+                            "max_age": "1d"
+                        }
+                    }
+                },
+                "delete": {
+                    "min_age": "30d",
+                    "actions": {
+                        "delete": {}
+                    }
+                }
+            }
+        }
+    }
+
+    response = requests.put(
+        f"{ELASTICSEARCH_URL}/_ilm/policy/home-batch-policy",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(policy)
+    )
+
+    if response.status_code in [200, 201]:
+        print("✅ Home batch ILM policy created successfully!")
+        return True
+    else:
+        print(f"❌ Failed to create home batch ILM policy: {response.status_code}")
+        print(f"Error: {response.text}")
+        return False
+
+def create_home_batch_index_template():
+    """Create index template for home-batch indices for pre-calculated batch data"""
+    template = {
+        "index_patterns": ["home-batch-*"],
+        "template": {
+            "settings": {
+                "number_of_shards": 1,
+                "number_of_replicas": 0,
+                "refresh_interval": "30s",
+                "index.lifecycle.name": "home-batch-policy",
+                "index.lifecycle.rollover_alias": "home-batch"
+            },
+            "mappings": {
+                "properties": {
+                    "@timestamp": {
+                        "type": "date"
+                    },
+                    "batch_id": {
+                        "type": "keyword"
+                    },
+                    "batch_start": {
+                        "type": "date"
+                    },
+                    "batch_end": {
+                        "type": "date"
+                    },
+                    "top_tickers": {
+                        "type": "nested",
+                        "properties": {
+                            "ticker": {
+                                "type": "keyword"
+                            },
+                            "mentions": {
+                                "type": "long"
+                            }
+                        }
+                    },
+                    "total_mentions": {
+                        "type": "long"
+                    },
+                    "total_posts": {
+                        "type": "long"
+                    },
+                    "status": {
+                        "type": "keyword"
+                    }
+                }
+            }
+        }
+    }
+
+    response = requests.put(
+        f"{ELASTICSEARCH_URL}/_index_template/home-batch-template",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(template)
+    )
+
+    if response.status_code in [200, 201]:
+        print("✅ Home batch index template created successfully!")
+        return True
+    else:
+        print(f"❌ Failed to create home batch index template: {response.status_code}")
+        print(f"Error: {response.text}")
+        return False
+
 def create_sample_queries():
     """Print sample Elasticsearch queries based on your requirements"""
     queries = {
@@ -347,14 +449,23 @@ def main():
     if not create_analysis_index_template():
         success = False
 
+    # Setup home batch data infrastructure
+    if not create_home_batch_ilm_policy():
+        success = False
+
+    if not create_home_batch_index_template():
+        success = False
+
     if success:
         create_sample_queries()
         print("\n🎉 Elasticsearch setup completed successfully!")
         print(f"🔍 Elasticsearch URL: {ELASTICSEARCH_URL}")
         print("📊 Ticker Index pattern: ticker-mentions-YYYY.MM.DD")
         print("📋 Analysis Index pattern: stock-analysis-YYYY.MM.DD")
+        print("🏠 Home Batch Index pattern: home-batch-YYYY.MM.DD")
         print("🗑️  Ticker data retention: 8 days (automatic deletion)")
         print("🗑️  Analysis data retention: 4 days (automatic deletion)")
+        print("🗑️  Home batch retention: 30 days (automatic deletion)")
         print("📈 Optimized for ticker aggregations and analysis retrieval")
     else:
         print("❌ Setup failed!")
