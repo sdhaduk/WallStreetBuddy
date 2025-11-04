@@ -1,3 +1,18 @@
+---
+# Persistent Volume Claim for Kafka data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka-data-pvc
+  namespace: wallstreetbuddy
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi  # Kafka logs and topic data
+  storageClassName: standard-rwo
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,6 +29,9 @@ spec:
         app: kafka
     spec:
       enableServiceLinks: false
+      # CRITICAL: Fix persistent volume permissions
+      securityContext:
+        fsGroup: 1000  # Ensures mounted volumes are writable by appuser
       containers:
       - name: kafka
         image: confluentinc/cp-kafka:7.4.0
@@ -46,6 +64,11 @@ spec:
           value: "9101"
         - name: KAFKA_JMX_HOSTNAME
           value: "kafka"
+        # CRITICAL: Mount persistent volume for data survival
+        volumeMounts:
+        - name: kafka-data
+          mountPath: /var/lib/kafka/data
+          subPath: kafka-logs  # Avoid lost+found directory
         resources:
           requests:
             cpu: 200m
@@ -53,6 +76,11 @@ spec:
           limits:
             cpu: 500m
             memory: 2Gi
+      # CRITICAL: Attach persistent volume
+      volumes:
+      - name: kafka-data
+        persistentVolumeClaim:
+          claimName: kafka-data-pvc
 ---
 apiVersion: v1
 kind: Service

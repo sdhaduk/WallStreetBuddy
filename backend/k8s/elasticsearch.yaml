@@ -1,3 +1,18 @@
+---
+# Persistent Volume Claim for Elasticsearch data - CRITICAL for data persistence
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elasticsearch-data-pvc
+  namespace: wallstreetbuddy
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi  
+  storageClassName: standard-rwo  # GKE default persistent disk
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,6 +28,9 @@ spec:
       labels:
         app: elasticsearch
     spec:
+      # CRITICAL: Fix persistent volume permissions
+      securityContext:
+        fsGroup: 1000  # Ensures mounted volumes are writable by elasticsearch user
       containers:
       - name: elasticsearch
         image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
@@ -25,20 +43,41 @@ spec:
         - name: xpack.security.enabled
           value: "false"
         - name: ES_JAVA_OPTS
-          value: "-Xms512m -Xmx512m"
+          value: "-Xms1g -Xmx2g"  # Increased from 512m to prevent crashes
+        - name: bootstrap.memory_lock
+          value: "false"  # Disable memory locking to prevent issues
+        - name: node.store.allow_mmap
+          value: "false"  # CRITICAL: Bypasses vm.max_map_count requirement for GKE Autopilot
         resources:
           requests:
-            cpu: 100m
-            memory: 1.5Gi
+            cpu: 250m  
+            memory: 2Gi 
           limits:
-            cpu: 500m
-            memory: 3Gi
+            cpu: 1000m  
+            memory: 3Gi  
         volumeMounts:
         - name: elasticsearch-data
           mountPath: /usr/share/elasticsearch/data
+        # CRITICAL: Health checks to detect problems early
+        livenessProbe:
+          httpGet:
+            path: /_cluster/health
+            port: 9200
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /_cluster/health
+            port: 9200
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
       volumes:
       - name: elasticsearch-data
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: elasticsearch-data-pvc  
 ---
 apiVersion: v1
 kind: Service

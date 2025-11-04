@@ -1,3 +1,18 @@
+---
+# Persistent Volume Claim for Zookeeper data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zookeeper-data-pvc
+  namespace: wallstreetbuddy
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi  # Zookeeper metadata and logs
+  storageClassName: standard-rwo
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,6 +28,9 @@ spec:
       labels:
         app: zookeeper
     spec:
+      # CRITICAL: Fix persistent volume permissions
+      securityContext:
+        fsGroup: 1000  # Ensures mounted volumes are writable by appuser
       containers:
       - name: zookeeper
         image: confluentinc/cp-zookeeper:7.4.0
@@ -23,6 +41,13 @@ spec:
           value: "2181"
         - name: ZOOKEEPER_TICK_TIME
           value: "2000"
+        # CRITICAL: Mount persistent volume for data survival
+        volumeMounts:
+        - name: zookeeper-data
+          mountPath: /var/lib/zookeeper/data
+        - name: zookeeper-data
+          mountPath: /var/lib/zookeeper/log
+          subPath: logs  # Use subdirectory for logs
         resources:
           requests:
             cpu: 50m
@@ -30,6 +55,11 @@ spec:
           limits:
             cpu: 100m
             memory: 512Mi
+      # CRITICAL: Attach persistent volume
+      volumes:
+      - name: zookeeper-data
+        persistentVolumeClaim:
+          claimName: zookeeper-data-pvc
 ---
 apiVersion: v1
 kind: Service
