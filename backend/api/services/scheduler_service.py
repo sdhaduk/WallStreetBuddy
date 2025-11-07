@@ -2,6 +2,7 @@
 APScheduler service for WallStreetBuddy background tasks
 """
 import logging
+import inspect
 from datetime import datetime
 from typing import Optional
 
@@ -67,39 +68,67 @@ class SchedulerService:
 
     async def _register_jobs(self):
         """Register all scheduled jobs"""
+        from datetime import datetime, timedelta
         from ..scheduler.jobs import stock_analysis_job, home_batch_data_job
 
-        # Home Batch Data Job - Every 3 days at 12:00 AM (before analysis job)
+        # Calculate start times for deployment and production jobs
+        from apscheduler.triggers.interval import IntervalTrigger
+        from apscheduler.triggers.date import DateTrigger
+        now = datetime.now()
+
+        # Deployment jobs: immediate data generation after startup (run once only)
+        home_deployment_start = now + timedelta(minutes=5)
+        analysis_deployment_start = now + timedelta(minutes=7)  # 7 minutes from now (2 minutes after batch)
+
+        # HOME BATCH JOBS
+        # Deployment job - runs ONCE in 5 minutes for immediate data after deployment
         self.scheduler.add_job(
             home_batch_data_job,
-            trigger=CronTrigger(
-                hour=0,
-                minute=0,
-                day='*/3'
-            ),
-            id='home_batch_data',
-            name='Home Batch Data Generation',
+            trigger=DateTrigger(run_date=home_deployment_start),
+            id='home_batch_data_deployment',
+            name='Home Batch Data Deployment (One-time)',
             max_instances=1,
             replace_existing=True
         )
 
-        # Stock Analysis Job - Every 3 days at 12:15 AM (15 minutes after batch job)
+        # Production job - every 3 days at midnight starting from deployment+3 days
+        home_production_start = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=3)
+        self.scheduler.add_job(
+            home_batch_data_job,
+            trigger=IntervalTrigger(days=3, start_date=home_production_start),
+            id='home_batch_data_production',
+            name='Home Batch Data Production (Every 3 Days)',
+            max_instances=1,
+            replace_existing=True
+        )
+
+        # STOCK ANALYSIS JOBS
+        # Deployment job - runs ONCE in 7 minutes for immediate analysis after deployment
         self.scheduler.add_job(
             stock_analysis_job,
-            trigger=CronTrigger(
-                hour=0,
-                minute=15,
-                day='*/3'
-            ),
-            id='stock_analysis_batch',
-            name='Stock Analysis Batch Generation',
+            trigger=DateTrigger(run_date=analysis_deployment_start),
+            id='stock_analysis_deployment',
+            name='Stock Analysis Deployment (One-time)',
+            max_instances=1,
+            replace_existing=True
+        )
+
+        # Production job - every 3 days, 15 minutes after home batch job
+        analysis_production_start = home_production_start + timedelta(minutes=15)
+        self.scheduler.add_job(
+            stock_analysis_job,
+            trigger=IntervalTrigger(days=3, start_date=analysis_production_start),
+            id='stock_analysis_production',
+            name='Stock Analysis Production (Every 3 Days)',
             max_instances=1,
             replace_existing=True
         )
 
         logger.info("📅 Registered scheduled jobs:")
-        logger.info("  - Home Batch Data: Every 3 days at 12:00 AM")
-        logger.info("  - Stock Analysis: Every 3 days at 12:15 AM")
+        logger.info(f"  - Home Batch Deployment: Run once at {home_deployment_start.strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f"  - Home Batch Production: Every 3 days starting {home_production_start.strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f"  - Stock Analysis Deployment: Run once at {analysis_deployment_start.strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f"  - Stock Analysis Production: Every 3 days starting {analysis_production_start.strftime('%Y-%m-%d %H:%M:%S')}")
 
     def _job_executed_listener(self, event):
         """Handle successful job execution"""
@@ -146,8 +175,11 @@ class SchedulerService:
                 logger.error(f"Job '{job_id}' not found")
                 return False
 
-            # Execute job immediately
-            job.func()
+            # Execute job immediately (handle both sync and async functions)
+            if inspect.iscoroutinefunction(job.func):
+                await job.func()
+            else:
+                job.func()
             logger.info(f"✅ Manually triggered job '{job_id}'")
             return True
 
