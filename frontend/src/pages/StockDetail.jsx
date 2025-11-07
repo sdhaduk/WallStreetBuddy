@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Maximize2, X } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import BarChart from '../components/BarChart'
 
 const StockDetail = () => {
@@ -8,29 +9,67 @@ const StockDetail = () => {
   const navigate = useNavigate()
   const [stockData, setStockData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false)
 
-  // Mock data generation for the stock
+  // Fetch real stock data from API
   useEffect(() => {
-    const mockStockData = {
-      symbol: symbol?.toUpperCase(),
-      mentionCount: Math.floor(Math.random() * 1000) + 500,
-      aiAnalysis: `${symbol?.toUpperCase()} shows strong community interest with significant mention volume on r/wallstreetbets. The stock demonstrates high volatility patterns typical of meme stock behavior, with retail investor sentiment driving price movements. Technical indicators suggest continued momentum trading opportunities.`,
-      historicalMentions: [
-        { name: 'Jan 10', mentions: Math.floor(Math.random() * 200) + 100 },
-        { name: 'Jan 11', mentions: Math.floor(Math.random() * 200) + 100 },
-        { name: 'Jan 12', mentions: Math.floor(Math.random() * 200) + 100 },
-        { name: 'Jan 13', mentions: Math.floor(Math.random() * 200) + 100 },
-        { name: 'Jan 14', mentions: Math.floor(Math.random() * 200) + 100 },
-        { name: 'Jan 15', mentions: Math.floor(Math.random() * 200) + 100 },
-        { name: 'Jan 16', mentions: Math.floor(Math.random() * 200) + 100 }
-      ]
+    const fetchStockData = async () => {
+      if (!symbol) return
+
+      try {
+        setLoading(true)
+        const response = await fetch(`http://localhost:8000/api/stock/${symbol}`)
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const result = await response.json()
+
+        if (result.status === 200) {
+          setStockData(result.data)
+        } else {
+          throw new Error(result.message || 'Failed to fetch stock data')
+        }
+      } catch (error) {
+        console.error('Error fetching stock data:', error)
+        // Set error state with fallback data
+        setStockData({
+          symbol: symbol?.toUpperCase(),
+          total_mentions: 0,
+          positive_mentions: null,
+          negative_mentions: null,
+          analysis_date: null,
+          ai_analysis: 'Unable to load analysis. Please try again later.',
+          historical_mentions: []
+        })
+      } finally {
+        setLoading(false)
+      }
     }
 
-    setTimeout(() => {
-      setStockData(mockStockData)
-      setLoading(false)
-    }, 800)
+    fetchStockData()
   }, [symbol])
+
+  // Handle keyboard events for modal
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && showAnalysisModal) {
+        setShowAnalysisModal(false)
+      }
+    }
+
+    if (showAnalysisModal) {
+      document.addEventListener('keydown', handleKeyDown)
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden'
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = 'auto'
+    }
+  }, [showAnalysisModal])
 
   if (loading) {
     return (
@@ -114,6 +153,34 @@ const StockDetail = () => {
     )
   }
 
+  // Handle case when stockData is null or empty
+  if (!stockData) {
+    return (
+      <div className="space-y-6 w-full" style={{minWidth: '1200px', margin: '0 auto'}}>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-md transition-colors"
+            style={{
+              backgroundColor: '#f8f9fa',
+              color: '#343a40',
+              border: '1px solid #dee2e6'
+            }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold">{symbol?.toUpperCase()}</h1>
+            <p className="text-muted-foreground">Stock Analysis & Details</p>
+          </div>
+        </div>
+        <div className="bg-card p-6 rounded-lg border text-center">
+          <p className="text-lg">Unable to load stock data. Please try again later.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 w-full" style={{minWidth: '1200px', margin: '0 auto'}}>
       <div className="flex items-center space-x-4">
@@ -144,9 +211,36 @@ const StockDetail = () => {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* AI Analysis */}
         <div className="bg-card p-6 rounded-lg border">
-          <h2 className="text-xl font-semibold mb-4">AI Analysis</h2>
-          <div className="space-y-4">
-            <p className="text-sm leading-relaxed">{stockData.aiAnalysis}</p>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">AI Analysis</h2>
+            <button
+              onClick={() => setShowAnalysisModal(true)}
+              className="flex items-center space-x-1 px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 rounded-md transition-colors"
+              title="View Full Report"
+            >
+              <Maximize2 className="h-3 w-3" />
+              <span>View Full</span>
+            </button>
+          </div>
+          <div
+            className="relative cursor-pointer group"
+            onClick={() => setShowAnalysisModal(true)}
+          >
+            <div
+              className="text-sm leading-relaxed overflow-hidden"
+              style={{
+                height: '200px',
+                WebkitLineClamp: 10,
+                WebkitBoxOrient: 'vertical',
+                display: '-webkit-box'
+              }}
+            >
+              <p className="whitespace-pre-wrap">{stockData.ai_analysis}</p>
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+            <div className="mt-2 text-center">
+              <span className="text-xs text-blue-600 group-hover:text-blue-800">Click to view full analysis →</span>
+            </div>
           </div>
         </div>
         
@@ -168,25 +262,68 @@ const StockDetail = () => {
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Total Mentions:</span>
-              <span className="text-sm font-medium">{stockData.mentionCount}</span>
+              <span className="text-sm font-medium">{stockData.total_mentions}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Analysis Date:</span>
-              <span className="text-sm font-medium">Jan 15, 2024</span>
+              <span className="text-sm font-medium">
+                {stockData.analysis_date ? new Date(stockData.analysis_date).toLocaleDateString() : 'Not available'}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Mention History Chart */}
-      <BarChart 
-        data={stockData.historicalMentions}
+      <BarChart
+        data={stockData.historical_mentions}
         title={`${stockData.symbol} Mention History (Last 7 Days)`}
         enableClick={false}
         height={300}
         barColor="#8b5cf6"
         hoverColor="#7c3aed"
       />
+
+      {/* AI Analysis Modal */}
+      {showAnalysisModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-2xl font-semibold">AI Analysis - {stockData.symbol}</h2>
+              <button
+                onClick={() => setShowAnalysisModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                title="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div className="prose max-w-none">
+                <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans">
+                  {stockData.ai_analysis}
+                </pre>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-between items-center p-6 border-t bg-gray-50">
+              <span className="text-sm text-gray-600">
+                Analysis Date: {stockData.analysis_date ? new Date(stockData.analysis_date).toLocaleDateString() : 'Not available'}
+              </span>
+              <button
+                onClick={() => setShowAnalysisModal(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
