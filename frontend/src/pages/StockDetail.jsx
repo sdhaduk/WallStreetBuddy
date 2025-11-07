@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Volume2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import BarChart from '../components/BarChart'
 
 const StockDetail = () => {
@@ -13,12 +13,7 @@ const StockDetail = () => {
   useEffect(() => {
     const mockStockData = {
       symbol: symbol?.toUpperCase(),
-      currentPrice: 192.53,
-      changePercent: Math.random() > 0.5 ? 2.3 : -1.8,
-      volume: 50231400,
-      marketCap: 3010000000000,
       mentionCount: Math.floor(Math.random() * 1000) + 500,
-      sentiment: Math.random() > 0.5 ? 'bullish' : 'bearish',
       aiAnalysis: `${symbol?.toUpperCase()} shows strong community interest with significant mention volume on r/wallstreetbets. The stock demonstrates high volatility patterns typical of meme stock behavior, with retail investor sentiment driving price movements. Technical indicators suggest continued momentum trading opportunities.`,
       historicalMentions: [
         { name: 'Jan 10', mentions: Math.floor(Math.random() * 200) + 100 },
@@ -64,49 +59,6 @@ const StockDetail = () => {
           </div>
         </div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-card p-4 rounded-lg border">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm font-medium">Current Price</span>
-            </div>
-            <div className="mt-2">
-              <div className="h-8 bg-muted rounded animate-pulse mb-1"></div>
-              <div className="flex items-center mt-1">
-                <div className="h-4 w-4 bg-muted rounded mr-1 animate-pulse"></div>
-                <div className="h-4 w-12 bg-muted rounded animate-pulse"></div>
-              </div>
-            </div>
-          </div>
-          <div className="bg-card p-4 rounded-lg border">
-            <div className="flex items-center space-x-2">
-              <Volume2 className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm font-medium">Volume</span>
-            </div>
-            <div className="mt-2">
-              <div className="h-8 bg-muted rounded animate-pulse"></div>
-            </div>
-          </div>
-          <div className="bg-card p-4 rounded-lg border">
-            <div className="flex items-center space-x-2">
-              <TrendingUp className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm font-medium">Market Cap</span>
-            </div>
-            <div className="mt-2">
-              <div className="h-8 bg-muted rounded animate-pulse"></div>
-            </div>
-          </div>
-          <div className="bg-card p-4 rounded-lg border">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium">WSB Mentions</span>
-            </div>
-            <div className="mt-2">
-              <div className="h-8 bg-muted rounded animate-pulse mb-1"></div>
-              <div className="h-4 w-16 bg-muted rounded animate-pulse"></div>
-            </div>
-          </div>
-        </div>
         
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="bg-card p-6 rounded-lg border">
@@ -132,8 +84,12 @@ const StockDetail = () => {
                 <div className="h-4 w-12 bg-muted rounded animate-pulse"></div>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Sentiment:</span>
-                <div className="h-4 w-16 bg-muted rounded animate-pulse"></div>
+                <span className="text-sm text-muted-foreground">Positive Mentions:</span>
+                <div className="h-4 w-20 bg-muted rounded animate-pulse"></div>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Negative Mentions:</span>
+                <div className="h-4 w-20 bg-muted rounded animate-pulse"></div>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Total Mentions:</span>
@@ -184,60 +140,6 @@ const StockDetail = () => {
         </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-card p-4 rounded-lg border">
-          <div className="flex items-center space-x-2">
-            <DollarSign className="h-5 w-5 text-muted-foreground" />
-            <span className="text-sm font-medium">Current Price</span>
-          </div>
-          <div className="mt-2">
-            <span className="text-2xl font-bold">${stockData.currentPrice}</span>
-            <div className={`flex items-center mt-1 ${stockData.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {stockData.changePercent >= 0 ? (
-                <TrendingUp className="h-4 w-4 mr-1" />
-              ) : (
-                <TrendingDown className="h-4 w-4 mr-1" />
-              )}
-              <span className="text-sm font-medium">
-                {stockData.changePercent >= 0 ? '+' : ''}{stockData.changePercent}%
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card p-4 rounded-lg border">
-          <div className="flex items-center space-x-2">
-            <Volume2 className="h-5 w-5 text-muted-foreground" />
-            <span className="text-sm font-medium">Volume</span>
-          </div>
-          <div className="mt-2">
-            <span className="text-2xl font-bold">{(stockData.volume / 1000000).toFixed(1)}M</span>
-          </div>
-        </div>
-
-        <div className="bg-card p-4 rounded-lg border">
-          <div className="flex items-center space-x-2">
-            <TrendingUp className="h-5 w-5 text-muted-foreground" />
-            <span className="text-sm font-medium">Market Cap</span>
-          </div>
-          <div className="mt-2">
-            <span className="text-2xl font-bold">${(stockData.marketCap / 1000000000000).toFixed(2)}T</span>
-          </div>
-        </div>
-
-        <div className="bg-card p-4 rounded-lg border">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium">WSB Mentions</span>
-          </div>
-          <div className="mt-2">
-            <span className="text-2xl font-bold">{stockData.mentionCount}</span>
-            <div className={`mt-1 text-sm font-medium ${stockData.sentiment === 'bullish' ? 'text-green-600' : 'text-red-600'}`}>
-              {stockData.sentiment === 'bullish' ? '📈 Bullish' : '📉 Bearish'}
-            </div>
-          </div>
-        </div>
-      </div>
       
       <div className="grid gap-6 lg:grid-cols-2">
         {/* AI Analysis */}
@@ -257,10 +159,12 @@ const StockDetail = () => {
               <span className="text-sm font-medium">{stockData.symbol}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Sentiment:</span>
-              <span className={`text-sm font-medium ${stockData.sentiment === 'bullish' ? 'text-green-600' : 'text-red-600'}`}>
-                {stockData.sentiment.toUpperCase()}
-              </span>
+              <span className="text-sm text-muted-foreground">Positive Mentions:</span>
+              <span className="text-sm font-medium">Coming Soon</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Negative Mentions:</span>
+              <span className="text-sm font-medium">Coming Soon</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Total Mentions:</span>
