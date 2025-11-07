@@ -96,6 +96,7 @@ async def home_batch_data_job():
         resp = es.search(
             index="ticker-mentions-*",
             size=0,
+            track_total_hits=True,  # Enable accurate total count beyond 10K limit
             query=query,
             aggregations={
                 "ticker_mentions": {
