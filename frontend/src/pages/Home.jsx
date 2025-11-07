@@ -4,6 +4,7 @@ import BarChart from '../components/BarChart'
 const Home = () => {
   const [latestBatchData, setLatestBatchData] = useState([])
   const [totalMentions, setTotalMentions] = useState(0)
+  const [batchInfo, setBatchInfo] = useState(null)
   const [loading, setLoading] = useState(true)
 
   // Fetch real data from API
@@ -28,6 +29,7 @@ const Home = () => {
 
         setLatestBatchData(transformedData)
         setTotalMentions(apiResponse.total_mentions || 0)
+        setBatchInfo(apiResponse.batch_info || null)
       } catch (error) {
         console.error('Failed to fetch home data:', error)
         // Fallback to empty array on error
@@ -113,12 +115,22 @@ const Home = () => {
       />
 
       <div className="bg-card p-4 rounded-lg border">
-        <h3 className="font-semibold mb-2">Batch Information</h3>
+        <h3 className="font-semibold mb-2 text-center">Batch Information</h3>
         <div className="text-sm text-muted-foreground space-y-1">
-          <p>• Data period: Last completed 3-day batch (6-3 days ago)</p>
-          <p>• Top {latestBatchData.length} most mentioned tickers</p>
-          <p>• Total mentions: {totalMentions.toLocaleString()}</p>
-          <p>• Analysis reports available for each ticker</p>
+          <div className="flex items-start">
+            <span className="mr-2">•</span>
+            <span>Data period: {batchInfo ?
+              `${new Date(batchInfo.batch_start).toLocaleString()} - ${new Date(batchInfo.batch_end).toLocaleString()}`
+              : 'Latest completed 3-day batch'}</span>
+          </div>
+          <div className="flex items-start">
+            <span className="mr-2">•</span>
+            <span>Total mentions: {totalMentions.toLocaleString()}</span>
+          </div>
+          <div className="flex items-start">
+            <span className="mr-2">•</span>
+            <span>Analysis reports available for each ticker</span>
+          </div>
         </div>
       </div>
 
