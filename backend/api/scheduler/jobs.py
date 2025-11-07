@@ -159,7 +159,7 @@ async def home_batch_data_job():
         job_duration = datetime.now() - job_start_time
         logger.info(f"✅ Home batch data job completed in {job_duration.total_seconds():.2f}s")
         logger.info(f"📂 Stored batch {batch_id} in index {index_name}")
-        logger.info(f"🎯 Top tickers: {[t['ticker'] for t in top_tickers[:5]]}")
+        logger.info(f"🎯 Top tickers: {[t['ticker'] for t in top_tickers]}")
 
         return {
             "status": "completed",
