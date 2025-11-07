@@ -115,13 +115,22 @@ const Home = () => {
       />
 
       <div className="bg-card p-4 rounded-lg border">
-        <h3 className="font-semibold mb-2">Batch Information</h3>
+        <h3 className="font-semibold mb-2 text-center">Batch Information</h3>
         <div className="text-sm text-muted-foreground space-y-1">
-          <p>• Data period: {batchInfo ?
-            `${new Date(batchInfo.batch_start).toLocaleString()} - ${new Date(batchInfo.batch_end).toLocaleString()}`
-            : 'Latest completed 3-day batch'}</p>
-          <p>• Total mentions: {totalMentions.toLocaleString()}</p>
-          <p>• Analysis reports available for each ticker</p>
+          <div className="flex items-start">
+            <span className="mr-2">•</span>
+            <span>Data period: {batchInfo ?
+              `${new Date(batchInfo.batch_start).toLocaleString()} - ${new Date(batchInfo.batch_end).toLocaleString()}`
+              : 'Latest completed 3-day batch'}</span>
+          </div>
+          <div className="flex items-start">
+            <span className="mr-2">•</span>
+            <span>Total mentions: {totalMentions.toLocaleString()}</span>
+          </div>
+          <div className="flex items-start">
+            <span className="mr-2">•</span>
+            <span>Analysis reports available for each ticker</span>
+          </div>
         </div>
       </div>
 

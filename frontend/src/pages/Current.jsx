@@ -386,8 +386,8 @@ const Current = () => {
         </div>
 
         <div className="bg-card p-4 rounded-lg border">
-          <h3 className="font-semibold mb-2">Current Filter Information</h3>
-          <div className="text-sm text-muted-foreground space-y-1">
+          <h3 className="font-semibold mb-2 text-center">Current Filter Information</h3>
+          <div className="text-sm text-muted-foreground space-y-1 flex flex-col items-center">
             <div className="h-4 bg-muted rounded animate-pulse mb-1"></div>
             <div className="h-4 bg-muted rounded animate-pulse mb-1 w-4/5"></div>
             <div className="h-4 bg-muted rounded animate-pulse mb-1 w-3/4"></div>
@@ -485,12 +485,24 @@ const Current = () => {
       />
 
       <div className="bg-card p-4 rounded-lg border">
-        <h3 className="font-semibold mb-2">Current Filter Information</h3>
+        <h3 className="font-semibold mb-2 text-center">Current Filter Information</h3>
         <div className="text-sm text-muted-foreground space-y-1">
-          <p>• Source: {getSubredditDisplayName()}</p>
-          <p>• Time Range: Last {getTimeDisplayText()}</p>
-          <p>• Total mentions: {totalMentions.toLocaleString()}</p>
-          <p>• Next update: Automatic refresh every minute</p>
+          <div className="flex items-start">
+            <span className="mr-2">•</span>
+            <span>Source: {getSubredditDisplayName()}</span>
+          </div>
+          <div className="flex items-start">
+            <span className="mr-2">•</span>
+            <span>Time Range: Last {getTimeDisplayText()}</span>
+          </div>
+          <div className="flex items-start">
+            <span className="mr-2">•</span>
+            <span>Total mentions: {totalMentions.toLocaleString()}</span>
+          </div>
+          <div className="flex items-start">
+            <span className="mr-2">•</span>
+            <span>Next update: Automatic refresh every minute</span>
+          </div>
         </div>
       </div>
 
