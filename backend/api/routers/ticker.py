@@ -280,3 +280,117 @@ async def get_home_data():
         logger.error(f"Home batch data query failed: {e}")
         raise HTTPException(status_code=500, detail="Home batch data query failed")
 
+
+@router.get("/stock/{ticker}")
+async def get_stock_detail(ticker: str):
+    """
+    Get comprehensive stock detail information for stock detail page
+
+    Args:
+        ticker: Stock symbol (e.g., "AAPL", "TSLA")
+
+    Returns:
+        Stock details including mentions, historical data, and AI analysis
+    """
+    try:
+        # Validate and normalize ticker
+        ticker = ticker.upper().strip()
+        if not ticker:
+            raise HTTPException(status_code=400, detail="Ticker symbol is required")
+
+        es = Elasticsearch([settings.elasticsearch_url])
+
+        # Query for 7-day mention data and historical breakdown
+        query = {
+            "bool": {
+                "must": [
+                    {
+                        "range": {
+                            "@timestamp": {
+                                "gte": "now-7d/d"  # Last 7 days
+                            }
+                        }
+                    },
+                    {
+                        "terms": {"tickers": [ticker]}
+                    }
+                ]
+            }
+        }
+
+        # Get mentions data with daily aggregations for chart
+        resp = es.search(
+            index="ticker-mentions-*",
+            size=0,
+            track_total_hits=True,  # Get accurate total count
+            query=query,
+            aggregations={
+                "daily_mentions": {
+                    "date_histogram": {
+                        "field": "@timestamp",
+                        "calendar_interval": "day",
+                        "format": "MMM dd",
+                        "min_doc_count": 0,
+                        "extended_bounds": {
+                            "min": "now-7d/d",
+                            "max": "now/d"
+                        }
+                    }
+                }
+            }
+        )
+
+        data = resp.body
+        total_mentions = data.get("hits", {}).get("total", {}).get("value", 0)
+        daily_buckets = data.get("aggregations", {}).get("daily_mentions", {}).get("buckets", [])
+
+        # Format historical mentions for chart
+        historical_mentions = []
+        for bucket in daily_buckets:
+            historical_mentions.append({
+                "name": bucket["key_as_string"],
+                "mentions": bucket["doc_count"]
+            })
+
+        # Get AI analysis report
+        ai_analysis = None
+        analysis_date = None
+        try:
+            analysis_resp = es.search(
+                index="stock-analysis-*",
+                size=1,
+                sort=[{"generation_time": {"order": "desc"}}],
+                query={
+                    "term": {"ticker": ticker}
+                }
+            )
+
+            analysis_hits = analysis_resp.body.get("hits", {}).get("hits", [])
+            if analysis_hits:
+                analysis_doc = analysis_hits[0]["_source"]
+                ai_analysis = analysis_doc.get("report_content", "Analysis not available")
+                analysis_date = analysis_doc.get("generation_time")
+        except Exception as analysis_error:
+            logger.warning(f"Could not retrieve analysis for {ticker}: {analysis_error}")
+            ai_analysis = "Analysis report will be available after it completes generating... come back in 5 minutes."
+
+        # Build response
+        return {
+            "status": 200,
+            "data": {
+                "symbol": ticker,
+                "total_mentions": total_mentions,
+                "positive_mentions": None,  # Future: sentiment analysis
+                "negative_mentions": None,  # Future: sentiment analysis
+                "analysis_date": analysis_date,
+                "ai_analysis": ai_analysis,
+                "historical_mentions": historical_mentions
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Stock detail query failed for {ticker}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve stock details for {ticker}")
+
