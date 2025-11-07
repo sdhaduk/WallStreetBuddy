@@ -50,6 +50,7 @@ async def top_10_filtered(timeframe: str = "3d", subreddit: str = "all"):
         resp = es.search(
             index="ticker-mentions-*",
             size=0,
+            track_total_hits=True,  # Enable accurate total count beyond 10K limit
             query=query,
             aggregations={
                 "ticker_mentions": {
