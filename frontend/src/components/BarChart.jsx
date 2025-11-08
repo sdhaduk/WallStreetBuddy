@@ -87,11 +87,6 @@ const BarChart = ({
           </RechartsBarChart>
         </ResponsiveContainer>
       </div>
-      {enableClick && (
-        <p className="text-sm text-muted-foreground mt-2 text-center">
-          Click on any bar to view detailed analysis
-        </p>
-      )}
     </div>
   )
 }
