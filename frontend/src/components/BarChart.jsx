@@ -68,11 +68,14 @@ const BarChart = ({
               }}
               labelStyle={{ color: 'hsl(var(--foreground))' }}
             />
-            <Bar 
-              dataKey="mentions" 
+            <Bar
+              dataKey="mentions"
               cursor={enableClick ? 'pointer' : 'default'}
               onClick={handleBarClick}
               onMouseEnter={handleMouseEnter}
+              animationDuration={900}
+              animationEasing="ease-out"
+              radius={[12, 12, 0, 0]}
             >
               {data.map((entry, index) => (
                 <Cell 
