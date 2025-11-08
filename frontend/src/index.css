@@ -18,9 +18,9 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  --background: #F7F7F5;
   --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
+  --card: #FCFCFB;
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
@@ -195,4 +195,11 @@ button:focus-visible {
 
 *::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
+}
+
+/* Custom card border width */
+.border {
+  border-width: 2px !important;
+  border-color: #D1D5DB !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
 }
