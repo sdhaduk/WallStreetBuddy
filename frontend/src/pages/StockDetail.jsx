@@ -235,7 +235,31 @@ const StockDetail = () => {
                 display: '-webkit-box'
               }}
             >
-              <p className="whitespace-pre-wrap">{stockData.ai_analysis}</p>
+              <style>
+                {`
+                  .card-markdown-content * {
+                    color: black !important;
+                    font-size: 0.875rem !important;
+                  }
+                  .card-markdown-content ul li::marker,
+                  .card-markdown-content ol li::marker {
+                    color: black !important;
+                  }
+                  .card-markdown-content h1,
+                  .card-markdown-content h2,
+                  .card-markdown-content h3,
+                  .card-markdown-content h4 {
+                    font-size: 1rem !important;
+                    font-weight: 600 !important;
+                    margin: 0.5rem 0 !important;
+                  }
+                `}
+              </style>
+              <div className="prose max-w-none text-left card-markdown-content">
+                <ReactMarkdown>
+                  {stockData.ai_analysis || 'No analysis available'}
+                </ReactMarkdown>
+              </div>
             </div>
             <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
             <div className="mt-2 text-center">
@@ -302,10 +326,21 @@ const StockDetail = () => {
 
             {/* Modal Content */}
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              <div className="prose max-w-none">
-                <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans">
-                  {stockData.ai_analysis}
-                </pre>
+              <style>
+                {`
+                  .markdown-content * {
+                    color: black !important;
+                  }
+                  .markdown-content ul li::marker,
+                  .markdown-content ol li::marker {
+                    color: black !important;
+                  }
+                `}
+              </style>
+              <div className="prose max-w-none text-left markdown-content">
+                <ReactMarkdown>
+                  {stockData.ai_analysis || 'No analysis available'}
+                </ReactMarkdown>
               </div>
             </div>
 

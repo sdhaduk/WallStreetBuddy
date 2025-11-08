@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin '@tailwindcss/typography';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -67,7 +68,8 @@ body {
   min-height: 100vh;
 }
 
-h1 {
+/* Scope h1 styles to not affect prose markdown content */
+body > div h1:not(.prose h1, .prose * h1) {
   font-size: 3.2em;
   line-height: 1.1;
 }
