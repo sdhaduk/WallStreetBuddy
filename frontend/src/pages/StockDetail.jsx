@@ -212,10 +212,17 @@ const StockDetail = () => {
         {/* AI Analysis */}
         <div className="bg-card p-6 rounded-lg border">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">AI Analysis</h2>
+            <h2 className="text-xl font-semibold">AI Analysis <span className="text-xs text-red-600 font-medium">(This is not financial advice)</span></h2>
             <button
               onClick={() => setShowAnalysisModal(true)}
-              className="flex items-center space-x-1 px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 rounded-md transition-colors"
+              className="flex items-center space-x-1 px-3 py-1 text-sm rounded-md transition-colors"
+              style={{
+                backgroundColor: '#ffffff',
+                color: '#374151',
+                border: '1px solid #d1d5db'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#ffffff'}
               title="View Full Report"
             >
               <Maximize2 className="h-3 w-3" />
@@ -262,9 +269,6 @@ const StockDetail = () => {
               </div>
             </div>
             <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
-            <div className="mt-2 text-center">
-              <span className="text-xs text-blue-600 group-hover:text-blue-800">Click to view full analysis →</span>
-            </div>
           </div>
         </div>
         
@@ -317,7 +321,14 @@ const StockDetail = () => {
               <h2 className="text-2xl font-semibold">AI Analysis - {stockData.symbol}</h2>
               <button
                 onClick={() => setShowAnalysisModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 rounded-full transition-colors"
+                style={{
+                  backgroundColor: '#ffffff',
+                  color: '#374151',
+                  border: '1px solid #d1d5db'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#ffffff'}
                 title="Close"
               >
                 <X className="h-5 w-5" />
@@ -325,7 +336,7 @@ const StockDetail = () => {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)] modal-content" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style>
                 {`
                   .markdown-content * {
@@ -334,6 +345,9 @@ const StockDetail = () => {
                   .markdown-content ul li::marker,
                   .markdown-content ol li::marker {
                     color: black !important;
+                  }
+                  .modal-content::-webkit-scrollbar {
+                    display: none;
                   }
                 `}
               </style>
@@ -345,16 +359,10 @@ const StockDetail = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-between items-center p-6 border-t bg-gray-50">
+            <div className="p-6 border-t bg-gray-50">
               <span className="text-sm text-gray-600">
                 Analysis Date: {stockData.analysis_date ? new Date(stockData.analysis_date).toLocaleDateString() : 'Not available'}
               </span>
-              <button
-                onClick={() => setShowAnalysisModal(false)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Close
-              </button>
             </div>
           </div>
         </div>
