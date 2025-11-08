@@ -110,8 +110,8 @@ const Home = () => {
         title="Top 10 Most Mentioned Stocks (Latest Batch)"
         enableClick={true}
         height={400}
-        barColor="#3b82f6"
-        hoverColor="#1d4ed8"
+        barColor="#1E81B0"
+        hoverColor="#3EA4D0"
       />
 
       <div className="bg-card p-4 rounded-lg border">

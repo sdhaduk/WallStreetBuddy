@@ -480,8 +480,8 @@ const Current = () => {
         title={`${getDynamicTitle()} (Live Count)`}
         enableClick={false}
         height={400}
-        barColor="#10b981"
-        hoverColor="#059669"
+        barColor="#059669"
+        hoverColor="#2DD4BF"
       />
 
       <div className="bg-card p-4 rounded-lg border">

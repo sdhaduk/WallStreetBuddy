@@ -308,7 +308,7 @@ const StockDetail = () => {
         title={`${stockData.symbol} Mention History (Last 7 Days)`}
         enableClick={false}
         height={300}
-        barColor="#8b5cf6"
+        barColor="#E15759"
         hoverColor="#7c3aed"
       />
 
