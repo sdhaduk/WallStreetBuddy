@@ -480,8 +480,8 @@ const Current = () => {
         title={`${getDynamicTitle()} (Live Count)`}
         enableClick={false}
         height={400}
-        barColor="#10b981"
-        hoverColor="#059669"
+        barColor="#059669"
+        hoverColor="#2DD4BF"
       />
 
       <div className="bg-card p-4 rounded-lg border">
@@ -506,8 +506,8 @@ const Current = () => {
         </div>
       </div>
 
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
-        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+      <div className="p-4 rounded-lg border" style={{ backgroundColor: '#E2F8D8', borderColor: '#3AB795' }}>
+        <p className="text-sm" style={{ color: '#14532D' }}>
           ℹ️ This data represents live counting in progress. Charts are not clickable as analysis is not yet complete.
         </p>
       </div>

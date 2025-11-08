@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin '@tailwindcss/typography';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -17,9 +18,9 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  --background: #F7F7F5;
   --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
+  --card: #FCFCFB;
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
@@ -67,7 +68,8 @@ body {
   min-height: 100vh;
 }
 
-h1 {
+/* Scope h1 styles to not affect prose markdown content */
+body > div h1:not(.prose h1, .prose * h1) {
   font-size: 3.2em;
   line-height: 1.1;
 }
@@ -183,4 +185,21 @@ button:focus-visible {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Hide scrollbars globally while preserving scroll functionality */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Custom card border width */
+.border {
+  border-width: 2px !important;
+  border-color: #D1D5DB !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
 }
