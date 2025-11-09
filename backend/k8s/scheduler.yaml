@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scheduler
+  namespace: wallstreetbuddy
+  labels:
+    app: scheduler
+    component: background-jobs
+spec:
+  # Always exactly 1 replica - prevents duplicate job execution
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scheduler
+  template:
+    metadata:
+      labels:
+        app: scheduler
+        component: background-jobs
+    spec:
+      containers:
+      - name: scheduler
+        image: gcr.io/wallstreetbuddy/fast-api:v7
+        # Run scheduler-only script instead of FastAPI server
+        command: ["python", "-m", "api.scheduler.scheduler_main"]
+        env:
+        # Elasticsearch connection
+        - name: ELASTICSEARCH_URL
+          value: "http://elasticsearch:9200"
+        # Debug mode
+        - name: DEBUG
+          value: "false"
+        # OpenAI API key from secret
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fastapi-secrets
+              key: openai-api-key
+        # Internal API key from secret
+        - name: INTERNAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fastapi-secrets
+              key: internal-api-key
+        # Pod identification for logging
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          requests:
+            cpu: 50m       # Minimal CPU - just runs background jobs
+            memory: 128Mi  # Small memory footprint
+          limits:
+            cpu: 200m      # Allow some burst for job execution
+            memory: 256Mi  # Conservative memory limit
+        # Simple liveness check - just check if container is running
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "exit(0)"  # Simple process check
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          timeoutSeconds: 5
+          failureThreshold: 3
+      restartPolicy: Always
