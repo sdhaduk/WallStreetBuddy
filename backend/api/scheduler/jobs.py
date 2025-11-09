@@ -23,7 +23,7 @@ async def stock_analysis_job():
 
     try:
         # Make HTTP POST request to the existing endpoint
-        base_url = f"http://{settings.fastapi_host}:{settings.fastapi_port}"
+        base_url = "http://fast-api:8000"
         endpoint_url = f"{base_url}{settings.api_prefix}/analysis/generate-batch"
 
         timeout = httpx.Timeout(1500.0)  # 25 minute timeout for AI generation (2.5 mins per report)

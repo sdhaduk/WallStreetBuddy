@@ -102,6 +102,40 @@ services:
       - spark_checkpoint:/tmp/spark-checkpoint-new
     restart: unless-stopped
 
+  fastapi-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.fastapi
+    container_name: fastapi-backend
+    environment:
+      - ELASTICSEARCH_URL=http://host.docker.internal:9200
+      - FASTAPI_HOST=0.0.0.0
+      - FASTAPI_PORT=8000
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: wallstreetbuddy-frontend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   elasticsearch_data:
     driver: local

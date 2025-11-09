@@ -1,0 +1,117 @@
+---
+# FastAPI Backend Deployment for WallStreetBuddy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fast-api
+  namespace: wallstreetbuddy
+  labels:
+    app: fast-api
+    component: api-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fast-api
+  template:
+    metadata:
+      labels:
+        app: fast-api
+        component: api-server
+    spec:
+      containers:
+      - name: fast-api
+        image: gcr.io/wallstreetbuddy/fast-api:v7
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        # Kubernetes internal service URLs
+        - name: ELASTICSEARCH_URL
+          value: "http://elasticsearch:9200"
+        - name: DEBUG
+          value: "false"
+        # Disable scheduler in FastAPI pods (scheduler runs separately)
+        - name: DISABLE_SCHEDULER
+          value: "true"
+        # OpenAI API Key from secret (create this secret separately)
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fastapi-secrets
+              key: openai-api-key
+        # Internal API key from secret
+        - name: INTERNAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fastapi-secrets
+              key: internal-api-key
+        resources:
+          requests:
+            cpu: 100m      # Based on load testing - adjust as needed
+            memory: 512Mi
+          limits:
+            cpu: 500m     # Allow burst for heavy API calls
+            memory: 1Gi
+        # Health checks for Kubernetes
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        # Security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          readOnlyRootFilesystem: false  # FastAPI may need to write temporary files
+---
+# Internal ClusterIP Service for inter-service communication
+apiVersion: v1
+kind: Service
+metadata:
+  name: fast-api
+  namespace: wallstreetbuddy
+  labels:
+    app: fast-api
+    component: api-server
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: fast-api
+---
+# LoadBalancer Service for external access (load testing)
+apiVersion: v1
+kind: Service
+metadata:
+  name: fast-api-external
+  namespace: wallstreetbuddy
+  labels:
+    app: fast-api
+    component: api-server-external
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: fast-api
+---
