@@ -9,7 +9,7 @@ metadata:
     app: fast-api
     component: api-server
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: fast-api
@@ -45,10 +45,10 @@ spec:
               key: internal-api-key
         resources:
           requests:
-            cpu: 200m      # Based on load testing - adjust as needed
+            cpu: 100m      # Based on load testing - adjust as needed
             memory: 512Mi
           limits:
-            cpu: 1000m     # Allow burst for heavy API calls
+            cpu: 500m     # Allow burst for heavy API calls
             memory: 1Gi
         # Health checks for Kubernetes
         livenessProbe:
