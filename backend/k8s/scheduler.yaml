@@ -7,7 +7,6 @@ metadata:
     app: scheduler
     component: background-jobs
 spec:
-  # Always exactly 1 replica - prevents duplicate job execution
   replicas: 1
   selector:
     matchLabels:
@@ -53,20 +52,16 @@ spec:
               fieldPath: metadata.name
         resources:
           requests:
-            cpu: 50m       # Minimal CPU - just runs background jobs
-            memory: 128Mi  # Small memory footprint
+            cpu: 50m       
+            memory: 128Mi  
           limits:
-            cpu: 200m      # Allow some burst for job execution
-            memory: 256Mi  # Conservative memory limit
-        # Simple liveness check - just check if container is running
+            cpu: 200m      
+            memory: 256Mi  
         livenessProbe:
           exec:
-            command:
-            - python
-            - -c
-            - "exit(0)"  # Simple process check
-          initialDelaySeconds: 30
+            command: ["/bin/sh","-c","pgrep -f scheduler_main >/dev/null"]
+          initialDelaySeconds: 60  
           periodSeconds: 60
-          timeoutSeconds: 5
-          failureThreshold: 3
+          timeoutSeconds: 10       
+          failureThreshold: 5      
       restartPolicy: Always
