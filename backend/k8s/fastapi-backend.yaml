@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: fast-api
-        image: gcr.io/wallstreetbuddy/fast-api:v4
+        image: gcr.io/wallstreetbuddy/fast-api:v7
         ports:
         - containerPort: 8000
           name: http
@@ -31,6 +31,9 @@ spec:
           value: "http://elasticsearch:9200"
         - name: DEBUG
           value: "false"
+        # Disable scheduler in FastAPI pods (scheduler runs separately)
+        - name: DISABLE_SCHEDULER
+          value: "true"
         # OpenAI API Key from secret (create this secret separately)
         - name: OPENAI_API_KEY
           valueFrom:
