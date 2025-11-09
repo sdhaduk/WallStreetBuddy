@@ -1,6 +1,7 @@
 """
 WallStreetBuddy FastAPI Application
 """
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,26 +24,35 @@ async def lifespan(app: FastAPI):
     FastAPI lifespan context manager
     Handles startup and shutdown events
     """
-    
+
     logger.info("🚀 Starting WallStreetBuddy FastAPI application")
 
-    try:
-        # Start the scheduler service
-        await scheduler_service.start()
-        logger.info("✅ Scheduler service started successfully")
-    except Exception as e:
-        logger.error(f"❌ Failed to start scheduler service: {e}")
-        raise
+    # Check if we should start the scheduler (API-only mode vs scheduler mode)
+    scheduler_disabled = os.getenv('DISABLE_SCHEDULER', 'false').lower() == 'true'
+
+    if scheduler_disabled:
+        logger.info("📵 Scheduler disabled - running in API-only mode")
+        scheduler_started = False
+    else:
+        try:
+            # Start the scheduler service
+            await scheduler_service.start()
+            logger.info("✅ Scheduler service started successfully")
+            scheduler_started = True
+        except Exception as e:
+            logger.error(f"❌ Failed to start scheduler service: {e}")
+            raise
 
     yield  # FastAPI application runs here
 
     logger.info("🛑 Shutting down WallStreetBuddy FastAPI application")
 
-    try:
-        await scheduler_service.stop()
-        logger.info("✅ Scheduler service stopped successfully")
-    except Exception as e:
-        logger.error(f"❌ Failed to stop scheduler service: {e}")
+    if scheduler_started:
+        try:
+            await scheduler_service.stop()
+            logger.info("✅ Scheduler service stopped successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to stop scheduler service: {e}")
 
 
 app = FastAPI(
