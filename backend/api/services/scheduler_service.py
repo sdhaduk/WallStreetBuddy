@@ -70,8 +70,8 @@ class SchedulerService:
         now = datetime.now()
 
         # Deployment jobs: immediate data generation after startup (run once only)
-        home_deployment_start = now + timedelta(minutes=5)
-        analysis_deployment_start = now + timedelta(minutes=7)  
+        home_deployment_start = now + timedelta(hours=1000)
+        analysis_deployment_start = now + timedelta(hours=1000)  
 
         # Deployment job - runs ONCE in 5 minutes for immediate data after deployment
         self.scheduler.add_job(
