@@ -17,9 +17,13 @@ spec:
         app: scheduler
         component: background-jobs
     spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       containers:
       - name: scheduler
-        image: gcr.io/wallstreetbuddy/fast-api:v11
+        image: gcr.io/wallstreetbuddy/fast-api:v13
         # Run scheduler-only script instead of FastAPI server
         command: ["python", "-m", "api.scheduler.scheduler_main"]
         ports:
@@ -68,5 +72,28 @@ spec:
           initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 5
-          failureThreshold: 3      
+          failureThreshold: 3
+        volumeMounts:
+        - name: scheduler-data
+          mountPath: /var/scheduler
+      volumes:
+      - name: scheduler-data
+        persistentVolumeClaim:
+          claimName: scheduler-data-pvc
       restartPolicy: Always
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: scheduler-data-pvc
+  namespace: wallstreetbuddy
+  labels:
+    app: scheduler
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: standard-rwo
