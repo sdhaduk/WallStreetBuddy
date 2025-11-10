@@ -3,10 +3,12 @@ APScheduler service for WallStreetBuddy background tasks
 """
 import logging
 import inspect
-from datetime import datetime
+import os
+from datetime import datetime, timedelta
 from typing import Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
 
@@ -19,6 +21,8 @@ class SchedulerService:
     def __init__(self):
         self.scheduler: Optional[AsyncIOScheduler] = None
         self._is_running = False
+        self.scheduler_data_dir = "/var/scheduler"
+        self.deployment_marker_file = os.path.join(self.scheduler_data_dir, "deployment_complete")
 
     async def start(self):
         if self._is_running:
@@ -26,7 +30,22 @@ class SchedulerService:
             return
 
         try:
-            self.scheduler = AsyncIOScheduler()
+            os.makedirs(self.scheduler_data_dir, exist_ok=True)
+
+            jobstores = {
+                'default': SQLAlchemyJobStore(url=f'sqlite:///{self.scheduler_data_dir}/jobs.db')
+            }
+
+            job_defaults = {
+                'coalesce': False,      # Execute missed jobs (maintains data completeness)
+                'max_instances': 1,     # Prevent multiple instances
+                'misfire_grace_time': 300  # 5 minutes grace period for brief restarts
+            }
+
+            self.scheduler = AsyncIOScheduler(
+                jobstores=jobstores,
+                job_defaults=job_defaults
+            )
 
             self.scheduler.add_listener(
                 self._job_executed_listener,
@@ -43,6 +62,11 @@ class SchedulerService:
             self._is_running = True
 
             logger.info("✅ Scheduler service started successfully")
+
+            # Log restored jobs if this was a restart after deployment
+            if hasattr(self, '_log_restored_jobs_after_start'):
+                self._log_restored_jobs()
+                delattr(self, '_log_restored_jobs_after_start')
 
         except Exception as e:
             logger.error(f"❌ Failed to start scheduler service: {e}")
@@ -62,62 +86,75 @@ class SchedulerService:
             raise
 
     async def _register_jobs(self):
-        from datetime import datetime, timedelta
-        from ..scheduler.jobs import stock_analysis_job, home_batch_data_job
-
+        from ..scheduler.jobs import stock_analysis_job, home_batch_data_job, process_cached_results
         from apscheduler.triggers.interval import IntervalTrigger
         from apscheduler.triggers.date import DateTrigger
         now = datetime.now()
 
-        # Deployment jobs: immediate data generation after startup (run once only)
-        home_deployment_start = now + timedelta(hours=1000)
-        analysis_deployment_start = now + timedelta(hours=1000)  
+        # Check if this is first deployment or restart
+        if not os.path.exists(self.deployment_marker_file):
+            logger.info("🆕 First deployment detected - scheduling all jobs")
 
-        # Deployment job - runs ONCE in 5 minutes for immediate data after deployment
-        self.scheduler.add_job(
-            home_batch_data_job,
-            trigger=DateTrigger(run_date=home_deployment_start),
-            id='home_batch_data_deployment',
-            name='Home Batch Data Deployment (One-time)',
-            max_instances=1,
-            replace_existing=True
-        )
+            # Deployment jobs (run once)
+            home_deployment_start = now + timedelta(minutes=5)
+            analysis_deployment_start = now + timedelta(minutes=7)
 
-        # Production job - every 3 days at midnight starting from deployment+3 days
-        home_production_start = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=3)
-        self.scheduler.add_job(
-            home_batch_data_job,
-            trigger=IntervalTrigger(days=3, start_date=home_production_start),
-            id='home_batch_data_production',
-            name='Home Batch Data Production (Every 3 Days)',
-            max_instances=1,
-            replace_existing=True
-        )
+            self.scheduler.add_job(
+                home_batch_data_job,
+                trigger=DateTrigger(run_date=home_deployment_start),
+                id='home_batch_data_deployment',
+                name='Home Batch Data Deployment (One-time)',
+                max_instances=1,
+                replace_existing=True
+            )
 
-        # Deployment job - runs ONCE in 7 minutes for immediate analysis after deployment
-        self.scheduler.add_job(
-            stock_analysis_job,
-            trigger=DateTrigger(run_date=analysis_deployment_start),
-            id='stock_analysis_deployment',
-            name='Stock Analysis Deployment (One-time)',
-            max_instances=1,
-            replace_existing=True
-        )
+            self.scheduler.add_job(
+                stock_analysis_job,
+                trigger=DateTrigger(run_date=analysis_deployment_start),
+                id='stock_analysis_deployment',
+                name='Stock Analysis Deployment (One-time)',
+                max_instances=1,
+                replace_existing=True
+            )
 
-        # Production job - every 3 days, 15 minutes after home batch job
-        analysis_production_start = home_production_start + timedelta(minutes=15)
-        self.scheduler.add_job(
-            stock_analysis_job,
-            trigger=IntervalTrigger(days=3, start_date=analysis_production_start),
-            id='stock_analysis_production',
-            name='Stock Analysis Production (Every 3 Days)',
-            max_instances=1,
-            replace_existing=True
-        )
+            # Production jobs (every 3 days starting in 3 days)
+            production_start = (now + timedelta(days=3)).replace(hour=0, minute=0, second=0, microsecond=0)
+            analysis_production_start = production_start + timedelta(minutes=15)
 
-        # Runs every 5 minutes to process cached results from failed storage attempts
-        from ..scheduler.jobs import process_cached_results
+            self.scheduler.add_job(
+                home_batch_data_job,
+                trigger=IntervalTrigger(days=3, start_date=production_start),
+                id='home_batch_data_production',
+                name='Home Batch Data Production (Every 3 Days)',
+                max_instances=1,
+                replace_existing=True
+            )
 
+            self.scheduler.add_job(
+                stock_analysis_job,
+                trigger=IntervalTrigger(days=3, start_date=analysis_production_start),
+                id='stock_analysis_production',
+                name='Stock Analysis Production (Every 3 Days)',
+                max_instances=1,
+                replace_existing=True
+            )
+
+            # Create deployment marker to prevent re-scheduling on restart
+            os.makedirs(os.path.dirname(self.deployment_marker_file), exist_ok=True)
+            with open(self.deployment_marker_file, 'w') as f:
+                f.write(now.isoformat())
+
+            logger.info("📅 All jobs scheduled successfully:")
+            logger.info(f"  - Home Batch Deployment: {home_deployment_start.strftime('%Y-%m-%d %H:%M:%S')}")
+            logger.info(f"  - Stock Analysis Deployment: {analysis_deployment_start.strftime('%Y-%m-%d %H:%M:%S')}")
+            logger.info(f"  - Home Batch Production: Every 3 days starting {production_start.strftime('%Y-%m-%d %H:%M:%S')}")
+            logger.info(f"  - Stock Analysis Production: Every 3 days starting {analysis_production_start.strftime('%Y-%m-%d %H:%M:%S')}")
+
+        else:
+            logger.info("✅ Deployment marker exists - SQLite JobStore will restore all jobs automatically")
+            self._log_restored_jobs_after_start = True
+
+        # Always schedule background cache processor
         cache_processor_start = now + timedelta(minutes=5)
         self.scheduler.add_job(
             process_cached_results,
@@ -127,13 +164,6 @@ class SchedulerService:
             max_instances=1,
             replace_existing=True
         )
-
-        logger.info("📅 Registered scheduled jobs:")
-        logger.info(f"  - Home Batch Deployment: Run once at {home_deployment_start.strftime('%Y-%m-%d %H:%M:%S')}")
-        logger.info(f"  - Home Batch Production: Every 3 days starting {home_production_start.strftime('%Y-%m-%d %H:%M:%S')}")
-        logger.info(f"  - Stock Analysis Deployment: Run once at {analysis_deployment_start.strftime('%Y-%m-%d %H:%M:%S')}")
-        logger.info(f"  - Stock Analysis Production: Every 3 days starting {analysis_production_start.strftime('%Y-%m-%d %H:%M:%S')}")
-        logger.info(f"  - Background Cache Processor: Every 5 minutes starting {cache_processor_start.strftime('%Y-%m-%d %H:%M:%S')}")
 
     def _job_executed_listener(self, event):
         logger.info(
@@ -186,6 +216,25 @@ class SchedulerService:
         except Exception as e:
             logger.error(f"❌ Failed to trigger job '{job_id}': {e}")
             return False
+
+    def _log_restored_jobs(self):
+        """Log jobs that were restored from SQLite after restart"""
+        try:
+            logger.info("📋 Jobs restored from SQLite JobStore:")
+
+            all_jobs = self.scheduler.get_jobs()
+            for job in all_jobs:
+                if job.next_run_time:
+                    next_run_local = job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')
+                    logger.info(f"  - {job.name} (ID: {job.id}): Next run = {next_run_local}")
+                else:
+                    logger.info(f"  - {job.name} (ID: {job.id}): Completed (no next run)")
+
+            if not all_jobs:
+                logger.warning("  - No jobs found in SQLite JobStore")
+
+        except Exception as e:
+            logger.error(f"❌ Error logging restored jobs: {e}")
 
 
 # Global scheduler instance
