@@ -9,7 +9,9 @@ import logging
 import signal
 import sys
 import time
+import threading
 from contextlib import asynccontextmanager
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import ConnectionError as ESConnectionError
 
@@ -25,6 +27,72 @@ logger = logging.getLogger(__name__)
 
 # Global scheduler instance for graceful shutdown
 scheduler_service = None
+
+class HealthHandler(BaseHTTPRequestHandler):
+    """HTTP handler for health check endpoints"""
+
+    def log_message(self, format, *args):
+        # Suppress HTTP server logs to keep output clean
+        pass
+
+    def do_GET(self):
+        global scheduler_service
+
+        if self.path == '/health':
+            try:
+                # Check if scheduler service is running
+                is_healthy = (scheduler_service and
+                            scheduler_service._is_running and
+                            scheduler_service.scheduler and
+                            scheduler_service.scheduler.running)
+
+                if is_healthy:
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    response = {
+                        "status": "healthy",
+                        "service": "scheduler",
+                        "running": True,
+                        "timestamp": time.time()
+                    }
+                    self.wfile.write(str(response).replace("'", '"').encode('utf-8'))
+                else:
+                    self.send_response(503)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    response = {
+                        "status": "unhealthy",
+                        "service": "scheduler",
+                        "running": False,
+                        "timestamp": time.time()
+                    }
+                    self.wfile.write(str(response).replace("'", '"').encode('utf-8'))
+
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                response = {
+                    "status": "error",
+                    "service": "scheduler",
+                    "error": str(e),
+                    "timestamp": time.time()
+                }
+                self.wfile.write(str(response).replace("'", '"').encode('utf-8'))
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+
+def start_health_server():
+    """Start HTTP health check server on port 8080"""
+    try:
+        server = HTTPServer(('0.0.0.0', 8080), HealthHandler)
+        logger.info("🩺 Health server started on port 8080")
+        server.serve_forever()
+    except Exception as e:
+        logger.error(f"❌ Failed to start health server: {e}")
 
 # Retry configuration
 MAX_RETRY_ATTEMPTS = 5
@@ -121,6 +189,10 @@ async def main():
     logger.info(f"📊 Environment: {settings.debug}")
     logger.info(f"📡 Elasticsearch: {settings.elasticsearch_url}")
     logger.info(f"🔄 Retry configuration: {MAX_RETRY_ATTEMPTS} attempts, {INITIAL_BACKOFF_DELAY}s initial delay")
+
+    # Start health server in background thread
+    health_thread = threading.Thread(target=start_health_server, daemon=True)
+    health_thread.start()
 
     try:
         scheduler_service = await start_scheduler_with_retry()
