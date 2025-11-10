@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_elasticsearch_client():
-    """Get Elasticsearch client"""
     return Elasticsearch([settings.elasticsearch_url])
 
 
@@ -24,16 +23,14 @@ async def generate_batch_analysis(request: Request):
     Internal endpoint to generate analysis reports for top 10 tickers from last 3 days
     This endpoint is intended to be called by the scheduler
     """
-    # Check for internal API key header
     api_key = request.headers.get("X-Internal-API-Key")
     if not api_key or api_key != settings.internal_api_key:
         raise HTTPException(status_code=403, detail="Access denied: Invalid or missing internal API key")
 
     try:
-        # Get ticker symbols from the latest home batch data for perfect consistency
         es = get_elasticsearch_client()
 
-        # Get latest batch data (same as home page)
+        # Get latest batch data for perfect consistency with home page
         batch_resp = es.search(
             index="home-batch-*",
             size=1,
@@ -50,7 +47,6 @@ async def generate_batch_analysis(request: Request):
                 "message": "No batch data available for analysis. Home batch job may not have run yet."
             }
 
-        # Extract ticker symbols from batch data
         batch_data = batch_hits[0]["_source"]
         batch_id = batch_data.get("batch_id", "unknown")
         symbols = [ticker["ticker"] for ticker in batch_data.get("top_tickers", [])]
@@ -63,32 +59,49 @@ async def generate_batch_analysis(request: Request):
             }
         logger.info(f"Generating batch analysis for {batch_id} - {len(symbols)} tickers: {symbols}")
 
-        # Generate reports using the async service
         reports = await stock_analysis_service.generate_batch_reports(symbols)
 
-        # Store successful reports in Elasticsearch
+        # Calculate index name once for consistent batch storage
+        generation_time = datetime.now()
+        index_name = f"stock-analysis-{generation_time.strftime('%Y.%m.%d')}"
+        generation_time_iso = generation_time.isoformat()
+
+        logger.info(f"Storing batch reports in index: {index_name}")
+
+        # Track failures with content preservation for scheduler retry
         successful_reports = 0
-        failed_reports = 0
+        failed_symbols = []
+        failed_report_data = {}
 
         for symbol, report_content in reports.items():
             if report_content is not None:
-                try:
-                    await store_analysis_report(es, symbol, report_content)
-                    successful_reports += 1
-                except Exception as e:
-                    logger.error(f"Failed to store report for {symbol}: {e}")
-                    failed_reports += 1
-            else:
-                failed_reports += 1
+                storage_success = await store_analysis_report(es, symbol, report_content, index_name, generation_time_iso)
 
-        logger.info(f"Batch analysis completed: {successful_reports} successful, {failed_reports} failed")
+                if storage_success:
+                    successful_reports += 1
+                else:
+                    failed_symbols.append(symbol)
+                    failed_report_data[symbol] = report_content
+                    logger.warning(f"⚠️ Cached report for {symbol} due to storage failure")
+            else:
+                # Report generation failed - no content to retry
+                failed_symbols.append(symbol)
+                logger.error(f"❌ Report generation failed for {symbol}")
+
+        total_failed = len(failed_symbols)
+        logger.info(f"Batch analysis completed: {successful_reports} successful, {total_failed} failed")
+
+        if failed_report_data:
+            logger.info(f"💾 Preserved {len(failed_report_data)} reports for scheduler retry")
 
         return {
             "status": 201,
             "total_tickers": len(symbols),
             "successful_reports": successful_reports,
-            "failed_reports": failed_reports,
-            "generation_time": datetime.now().isoformat(),
+            "failed_reports": failed_symbols,
+            "failed_report_data": failed_report_data,
+            "index_name": index_name,
+            "generation_time": generation_time_iso,
             "tickers_processed": symbols
         }
 
@@ -108,7 +121,6 @@ async def get_latest_report(ticker: str):
     try:
         es = get_elasticsearch_client()
 
-        # Search for latest report for the ticker
         resp = es.search(
             index="stock-analysis-*",
             size=1,
@@ -156,7 +168,6 @@ async def list_available_reports(days: int = 4):
     try:
         es = get_elasticsearch_client()
 
-        # Limit days to reasonable range
         days = min(max(days, 1), 7)
 
         resp = es.search(
@@ -208,13 +219,11 @@ async def generate_single_report(ticker: str):
         ticker = ticker.upper()
         logger.info(f"Generating single report for {ticker}")
 
-        # Generate report using the async service
         report_content = await stock_analysis_service.generate_report(ticker)
 
         if not report_content:
             raise HTTPException(status_code=500, detail=f"Failed to generate report for {ticker}")
 
-        # Store report in Elasticsearch
         es = get_elasticsearch_client()
 
         await store_analysis_report(es, ticker, report_content)
@@ -235,7 +244,7 @@ async def generate_single_report(ticker: str):
         raise HTTPException(status_code=500, detail=f"Failed to generate report: {str(e)}")
 
 
-async def store_analysis_report(es: Elasticsearch, ticker: str, report_content: str):
+async def store_analysis_report(es: Elasticsearch, ticker: str, report_content: str, index_name: str, generation_time: str) -> bool:
     """
     Store analysis report in Elasticsearch
 
@@ -243,24 +252,30 @@ async def store_analysis_report(es: Elasticsearch, ticker: str, report_content: 
         es: Elasticsearch client
         ticker: Stock ticker symbol
         report_content: Generated report content
+        index_name: Elasticsearch index name for consistent batch storage
+        generation_time: ISO timestamp for when the report was generated
+
+    Returns:
+        bool: True if storage successful, False if failed
     """
-    now = datetime.now()
-    doc = {
-        "@timestamp": now.isoformat(),
-        "ticker": ticker.upper(),
-        "generation_time": now.isoformat(),
-        "report_content": report_content,
-        "status": "completed",
-        "model_used": "gpt-5",
-    }
+    try:
+        doc = {
+            "@timestamp": generation_time,
+            "ticker": ticker.upper(),
+            "generation_time": generation_time,
+            "report_content": report_content,
+            "status": "completed",
+            "model_used": "gpt-5",
+        }
 
-    # Use date-based index naming
-    index_name = f"stock-analysis-{now.strftime('%Y.%m.%d')}"
+        result = es.index(
+            index=index_name,
+            document=doc
+        )
 
-    result = es.index(
-        index=index_name,
-        document=doc
-    )
+        logger.info(f"✅ Stored analysis report for {ticker} in index {index_name}")
+        return True
 
-    logger.info(f"Stored analysis report for {ticker} in index {index_name}")
-    return result
+    except Exception as e:
+        logger.error(f"❌ Failed to store analysis report for {ticker} in {index_name}: {e}")
+        return False

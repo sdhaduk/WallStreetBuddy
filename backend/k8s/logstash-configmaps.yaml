@@ -54,7 +54,7 @@ data:
 
     output {
       elasticsearch {
-        hosts => ["elasticsearch:9200"]
+        hosts => ["elasticsearch-cluster:9200"]
         index => "ticker-mentions-%{+YYYY.MM.dd}"
         document_type => "_doc"
         document_id => "%{id}"

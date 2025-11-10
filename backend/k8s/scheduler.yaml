@@ -7,7 +7,6 @@ metadata:
     app: scheduler
     component: background-jobs
 spec:
-  # Always exactly 1 replica - prevents duplicate job execution
   replicas: 1
   selector:
     matchLabels:
@@ -20,13 +19,17 @@ spec:
     spec:
       containers:
       - name: scheduler
-        image: gcr.io/wallstreetbuddy/fast-api:v7
+        image: gcr.io/wallstreetbuddy/fast-api:v11
         # Run scheduler-only script instead of FastAPI server
         command: ["python", "-m", "api.scheduler.scheduler_main"]
+        ports:
+        - containerPort: 8080
+          name: health
+          protocol: TCP
         env:
         # Elasticsearch connection
         - name: ELASTICSEARCH_URL
-          value: "http://elasticsearch:9200"
+          value: "http://elasticsearch-cluster:9200"
         # Debug mode
         - name: DEBUG
           value: "false"
@@ -53,20 +56,17 @@ spec:
               fieldPath: metadata.name
         resources:
           requests:
-            cpu: 50m       # Minimal CPU - just runs background jobs
-            memory: 128Mi  # Small memory footprint
+            cpu: 50m       
+            memory: 128Mi  
           limits:
-            cpu: 200m      # Allow some burst for job execution
-            memory: 256Mi  # Conservative memory limit
-        # Simple liveness check - just check if container is running
+            cpu: 200m      
+            memory: 256Mi  
         livenessProbe:
-          exec:
-            command:
-            - python
-            - -c
-            - "exit(0)"  # Simple process check
-          initialDelaySeconds: 30
-          periodSeconds: 60
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
           timeoutSeconds: 5
-          failureThreshold: 3
+          failureThreshold: 3      
       restartPolicy: Always

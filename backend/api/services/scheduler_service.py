@@ -21,7 +21,6 @@ class SchedulerService:
         self._is_running = False
 
     async def start(self):
-        """Start the scheduler service"""
         if self._is_running:
             logger.warning("Scheduler is already running")
             return
@@ -29,7 +28,6 @@ class SchedulerService:
         try:
             self.scheduler = AsyncIOScheduler()
 
-            # Add event listeners for job monitoring
             self.scheduler.add_listener(
                 self._job_executed_listener,
                 EVENT_JOB_EXECUTED
@@ -39,10 +37,8 @@ class SchedulerService:
                 EVENT_JOB_ERROR
             )
 
-            # Add scheduled jobs
             await self._register_jobs()
 
-            # Start the scheduler
             self.scheduler.start()
             self._is_running = True
 
@@ -53,7 +49,6 @@ class SchedulerService:
             raise
 
     async def stop(self):
-        """Stop the scheduler service"""
         if not self._is_running or not self.scheduler:
             return
 
@@ -67,20 +62,17 @@ class SchedulerService:
             raise
 
     async def _register_jobs(self):
-        """Register all scheduled jobs"""
         from datetime import datetime, timedelta
         from ..scheduler.jobs import stock_analysis_job, home_batch_data_job
 
-        # Calculate start times for deployment and production jobs
         from apscheduler.triggers.interval import IntervalTrigger
         from apscheduler.triggers.date import DateTrigger
         now = datetime.now()
 
         # Deployment jobs: immediate data generation after startup (run once only)
-        home_deployment_start = now + timedelta(minutes=5)
-        analysis_deployment_start = now + timedelta(minutes=7)  
+        home_deployment_start = now + timedelta(hours=1000)
+        analysis_deployment_start = now + timedelta(hours=1000)  
 
-        # HOME BATCH JOBS
         # Deployment job - runs ONCE in 5 minutes for immediate data after deployment
         self.scheduler.add_job(
             home_batch_data_job,
@@ -102,7 +94,6 @@ class SchedulerService:
             replace_existing=True
         )
 
-        # STOCK ANALYSIS JOBS
         # Deployment job - runs ONCE in 7 minutes for immediate analysis after deployment
         self.scheduler.add_job(
             stock_analysis_job,
@@ -124,27 +115,38 @@ class SchedulerService:
             replace_existing=True
         )
 
+        # Runs every 5 minutes to process cached results from failed storage attempts
+        from ..scheduler.jobs import process_cached_results
+
+        cache_processor_start = now + timedelta(minutes=5)
+        self.scheduler.add_job(
+            process_cached_results,
+            trigger=IntervalTrigger(minutes=10, start_date=cache_processor_start),
+            id='cache_processor',
+            name='Background Cache Processor',
+            max_instances=1,
+            replace_existing=True
+        )
+
         logger.info("📅 Registered scheduled jobs:")
         logger.info(f"  - Home Batch Deployment: Run once at {home_deployment_start.strftime('%Y-%m-%d %H:%M:%S')}")
         logger.info(f"  - Home Batch Production: Every 3 days starting {home_production_start.strftime('%Y-%m-%d %H:%M:%S')}")
         logger.info(f"  - Stock Analysis Deployment: Run once at {analysis_deployment_start.strftime('%Y-%m-%d %H:%M:%S')}")
         logger.info(f"  - Stock Analysis Production: Every 3 days starting {analysis_production_start.strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f"  - Background Cache Processor: Every 5 minutes starting {cache_processor_start.strftime('%Y-%m-%d %H:%M:%S')}")
 
     def _job_executed_listener(self, event):
-        """Handle successful job execution"""
         logger.info(
             f"✅ Job '{event.job_id}' executed successfully "
             f"in {event.scheduled_run_time.strftime('%Y-%m-%d %H:%M:%S')}"
         )
 
     def _job_error_listener(self, event):
-        """Handle job execution errors"""
         logger.error(
             f"❌ Job '{event.job_id}' failed: {event.exception}"
         )
 
     def get_status(self) -> dict:
-        """Get scheduler status and job information"""
         if not self.scheduler:
             return {"status": "not_initialized", "jobs": []}
 
@@ -164,7 +166,6 @@ class SchedulerService:
         }
 
     async def trigger_job(self, job_id: str) -> bool:
-        """Manually trigger a specific job (for testing)"""
         if not self.scheduler:
             logger.error("Scheduler not initialized")
             return False
@@ -175,7 +176,6 @@ class SchedulerService:
                 logger.error(f"Job '{job_id}' not found")
                 return False
 
-            # Execute job immediately (handle both sync and async functions)
             if inspect.iscoroutinefunction(job.func):
                 await job.func()
             else:
