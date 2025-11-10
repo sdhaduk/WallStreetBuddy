@@ -21,14 +21,14 @@ spec:
     spec:
       containers:
       - name: fast-api
-        image: gcr.io/wallstreetbuddy/fast-api:v7
+        image: gcr.io/wallstreetbuddy/fast-api:v10
         ports:
         - containerPort: 8000
           name: http
         env:
         # Kubernetes internal service URLs
         - name: ELASTICSEARCH_URL
-          value: "http://elasticsearch:9200"
+          value: "http://elasticsearch-cluster:9200"
         - name: DEBUG
           value: "false"
         # Disable scheduler in FastAPI pods (scheduler runs separately)
