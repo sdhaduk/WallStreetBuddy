@@ -1,9 +1,4 @@
 # Minimal requirements for kafka-producer service
-# Reddit API integration
 praw==7.7.1
-
-# Environment variables
 python-dotenv==1.0.0
-
-# Kafka client
 kafka-python==2.0.2
