@@ -1,0 +1,145 @@
+---
+# Headless service for StatefulSet - enables stable network identities
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-headless
+  namespace: wallstreetbuddy
+  labels:
+    app: elasticsearch-cluster
+spec:
+  clusterIP: None  # Headless service
+  publishNotReadyAddresses: true  # Allow discovery before readiness
+  selector:
+    app: elasticsearch-cluster
+  ports:
+  - name: http
+    port: 9200
+  - name: transport
+    port: 9300
+---
+# Load balancer service for application access
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-cluster
+  namespace: wallstreetbuddy
+  labels:
+    app: elasticsearch-cluster
+spec:
+  type: LoadBalancer
+  selector:
+    app: elasticsearch-cluster
+  ports:
+  - name: http
+    port: 9200
+    targetPort: 9200
+---
+# StatefulSet for 3-node Elasticsearch cluster
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch-cluster
+  namespace: wallstreetbuddy
+spec:
+  serviceName: elasticsearch-headless
+  replicas: 3
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: elasticsearch-cluster
+  template:
+    metadata:
+      labels:
+        app: elasticsearch-cluster
+    spec:
+      # Required anti-affinity - forces Autopilot to create new nodes for HA
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - elasticsearch-cluster
+            topologyKey: kubernetes.io/hostname
+      securityContext:
+        fsGroup: 1000  # Elasticsearch user permissions
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+        ports:
+        - containerPort: 9200
+          name: http
+        - containerPort: 9300
+          name: transport
+        env:
+        # Cluster configuration
+        - name: cluster.name
+          value: "wallstreetbuddy-cluster"
+        - name: node.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        # Discovery using headless service - resolves all pod IPs
+        - name: discovery.seed_hosts
+          value: "elasticsearch-headless"
+        - name: cluster.initial_master_nodes
+          value: "elasticsearch-cluster-0,elasticsearch-cluster-1,elasticsearch-cluster-2"
+        # Node roles (both master and data)
+        - name: node.roles
+          value: "master,data,data_content,data_hot,data_warm,data_cold,data_frozen,ingest,ml,remote_cluster_client,transform"
+        # Security and performance
+        - name: xpack.security.enabled
+          value: "false"
+        - name: bootstrap.memory_lock
+          value: "false"
+        - name: node.store.allow_mmap
+          value: "false"
+        - name: ES_JAVA_OPTS
+          value: "-Xms1536m -Xmx1536m"
+        # Snapshot repository
+        - name: path.repo
+          value: "/usr/share/elasticsearch/data/snapshots"
+        resources:
+          requests:
+            cpu: 500m  # Minimum required by Autopilot for anti-affinity
+            memory: 2Gi
+          limits:
+            cpu: 1000m
+            memory: 3Gi
+        volumeMounts:
+        - name: elasticsearch-data
+          mountPath: /usr/share/elasticsearch/data
+        startupProbe:
+          httpGet:
+            path: /_cat/nodes
+            port: 9200
+          periodSeconds: 10
+          failureThreshold: 60
+        livenessProbe:
+          httpGet:
+            path: /_cluster/health
+            port: 9200
+          initialDelaySeconds: 300  # 5 minutes - longer for cluster formation
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /_cat/nodes
+            port: 9200
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+  # Persistent volume claim template - each pod gets its own storage
+  volumeClaimTemplates:
+  - metadata:
+      name: elasticsearch-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: standard-rwo
+      resources:
+        requests:
+          storage: 1Gi
