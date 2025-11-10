@@ -1,21 +1,11 @@
-# FastAPI Backend Essential Dependencies (Optimized for Docker)
-# Core FastAPI framework and server
+# FastAPI Backend Essential Dependencies 
 fastapi[standard]==0.116.0
 uvicorn==0.35.0
-
-# Configuration management
 pydantic-settings==2.10.1
-
-# Database & Search
 elasticsearch==8.11.0
-
-# AI Analysis Service
 pydantic-ai-slim[openai]==1.0.10
 yfinance==0.2.66
 python-dotenv==1.0.0
-
-# Background Scheduler
 apscheduler==3.10.4
-
-# HTTP Client for scheduler jobs
 httpx==0.28.1
+sqlalchemy==2.0.35
