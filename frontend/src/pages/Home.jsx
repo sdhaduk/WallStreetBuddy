@@ -12,7 +12,7 @@ const Home = () => {
     const fetchHomeData = async () => {
       try {
         setLoading(true)
-        const response = await fetch('http://localhost:8000/api/home-data')
+        const response = await fetch('/api/home-data')
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
