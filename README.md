@@ -53,7 +53,7 @@ graph TD
 1. **Reddit Ingestion**: PRAW-based producer collects real-time comments and submissions
 2. **Stream Processing**:
 * Spark processes data with direct processing (no windowing) and 1-minute trigger intervals
-* **Ticker Extraction**: Advanced NLP pipeline with:
+* **Ticker Extraction**: NLP pipeline with:
    - Dollar pattern recognition (`$AAPL`)
    - Financial context scoring for ambiguous tickers
    - Company name resolution using SpaCy NER
