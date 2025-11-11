@@ -9,9 +9,9 @@ A real-time financial sentiment analysis platform that monitors Reddit discussio
 WallStreetBuddy transforms Reddit financial discussions into actionable insights by:
 
 1. **Real-time Data Collection**: Continuously monitors financial subreddits (r/stocks, r/wallstreetbets, r/ValueInvesting) for stock mentions
-2. **Intelligent Ticker Extraction**: Uses advanced NLP to identify legitimate stock tickers from casual conversations, filtering out false positives
-3. **Trend Analysis**: Tracks mention frequency and sentiment patterns across different time periods
-4. **AI-Powered Research**: Generates comprehensive stock analysis reports using AI that combines Reddit sentiment with market data
+2. **Ticker Extraction**: Uses NLP to identify legitimate stock tickers from casual conversations, filtering out false positives
+3. **Trend Analysis**: Tracks mention frequency across different time periods
+4. AI-Powered Research: AI agent with specialized tools that leverage the yfinance API to generate comprehensive stock analysis reports every three days on the top ten most mentioned tickers. 
 5. **Interactive Dashboard**: Provides a responsive web interface for exploring trending stocks, viewing mention history, and accessing analysis reports
 
 ### Core Components
@@ -30,7 +30,7 @@ WallStreetBuddy transforms Reddit financial discussions into actionable insights
 - **FastAPI Backend**: RESTful API with async support, auto-documentation, and health monitoring
 - **React Frontend**: Modern SPA with interactive charts, real-time updates, and responsive design
 - **High Availability**: Both frontend and backend use multi-replica deployments with load balancing for zero-downtime operations
-- **AI Analysis Service**: OpenAI-powered stock research with Yahoo Finance integration
+- **AI Analysis Agent**: Stock research agent with Yahoo Finance tools
 
 ## Pipeline Architecture
 
@@ -51,8 +51,9 @@ graph TD
 **Data Flow Details:**
 
 1. **Reddit Ingestion**: PRAW-based producer collects real-time comments and submissions
-2. **Stream Processing**: Spark processes data with direct processing (no windowing) and 1-minute trigger intervals
-3. **Ticker Extraction**: Advanced NLP pipeline with:
+2. **Stream Processing**:
+* Spark processes data with direct processing (no windowing) and 1-minute trigger intervals
+* **Ticker Extraction**: Advanced NLP pipeline with:
    - Dollar pattern recognition (`$AAPL`)
    - Financial context scoring for ambiguous tickers
    - Company name resolution using SpaCy NER
@@ -70,45 +71,6 @@ graph TD
 - **Automatic Failover**: Master election and request routing handled automatically
 - **Load Distribution**: Traffic distributed across multiple replicas via LoadBalancer
 - **Zero Downtime Updates**: Rolling deployments with health check validation
-
-##  Development Setup
-
-### Prerequisites
-- Docker & Docker Compose
-- Node.js 22+ for frontend development
-- Python 3.11+ for backend development
-- Reddit API credentials
-
-### Quick Start
-```bash
-# Backend setup
-cd backend
-pip install -r requirements.txt
-docker-compose up -d  # Start infrastructure services
-python setup/setup_kafka.py  # Create Kafka topics
-python setup/elasticsearch_setup.py  # Setup Elasticsearch
-
-# Environment setup
-echo "REDDIT_CLIENT_ID=your_id" > .env
-echo "REDDIT_CLIENT_SECRET=your_secret" >> .env
-echo "REDDIT_CLIENT_AGENT=your_agent" >> .env
-
-# Start data pipeline
-python pipeline/kafka_producer.py  # Terminal 1
-python pipeline/spark_processor.py  # Terminal 2
-python app.py  # Terminal 3 (FastAPI server)
-
-# Frontend setup
-cd frontend
-npm install
-npm run dev  # http://localhost:5173
-```
-
-### Monitoring & Health
-- **FastAPI**: http://localhost:8000/docs
-- **Kafka UI**: http://localhost:8080
-- **Elasticsearch**: http://localhost:9200
-- **Frontend**: http://localhost:5173
 
 ## Future Enhancements
 - **Sentiment Analysis**: Train a Small Language Model (SLM) using gathered Reddit data to classify sentiment for each stock mention, then aggregate individual message sentiment scores to generate overall stock sentiment metrics 
