@@ -198,7 +198,7 @@ const Current = () => {
 
       const subreddit = subredditMap[subredditParam] || 'all'
 
-      const response = await fetch(`http://localhost:8000/api/top-10-filtered?timeframe=${timeframe}&subreddit=${subreddit}`)
+      const response = await fetch(`/api/top-10-filtered?timeframe=${timeframe}&subreddit=${subreddit}`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)

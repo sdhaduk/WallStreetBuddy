@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     elasticsearch_index_pattern: str = "ticker-mentions-*"
 
     # CORS Configuration
-    allowed_origins: List[str] = ["*"]  # Allow all origins (restrict in production)
+    allowed_origins: List[str] = ["https://wsbuddy.app", "https://www.wsbuddy.app"]
 
     # API Configuration
     api_prefix: str = "/api"

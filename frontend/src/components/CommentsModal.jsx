@@ -71,7 +71,7 @@ const CommentsModal = ({ isOpen, onClose }) => {
         params.append('cursor', cursor)
       }
 
-      const response = await fetch(`http://localhost:8000/api/comments?${params}`)
+      const response = await fetch(`/api/comments?${params}`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)

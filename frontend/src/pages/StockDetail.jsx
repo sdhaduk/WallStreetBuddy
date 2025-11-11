@@ -18,7 +18,7 @@ const StockDetail = () => {
 
       try {
         setLoading(true)
-        const response = await fetch(`http://localhost:8000/api/stock/${symbol}`)
+        const response = await fetch(`/api/stock/${symbol}`)
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
