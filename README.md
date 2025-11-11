@@ -37,7 +37,7 @@ WallStreetBuddy transforms Reddit financial discussions into actionable insights
 ### Real-Time Processing Pipeline
 
 ```mermaid
-graph LR
+graph TD
     A[Reddit API] --> B[Kafka Producer]
     B --> C[Kafka Topic: reddit-data]
     C --> D[Spark Processor]
@@ -105,14 +105,6 @@ npm install
 npm run dev  # http://localhost:5173
 ```
 
-### API Endpoints
-- **Health Check**: `GET /api/health`
-- **Top Tickers**: `GET /api/top-10-filtered?timeframe=3d&subreddit=all`
-- **Comments**: `GET /api/comments?timeframe=24h&tickers=AAPL,TSLA`
-- **Home Data**: `GET /api/home-data` (3-day batch data)
-- **Analysis Reports**: `GET /api/analysis/report/{ticker}`
-- **API Documentation**: `http://localhost:8000/docs`
-
 ### Monitoring & Health
 - **FastAPI**: http://localhost:8000/docs
 - **Kafka UI**: http://localhost:8080
@@ -121,7 +113,3 @@ npm run dev  # http://localhost:5173
 
 ## Future Enhancements
 - **Sentiment Analysis**: Train a Small Language Model (SLM) using gathered Reddit data to classify sentiment for each stock mention, then aggregate individual message sentiment scores to generate overall stock sentiment metrics 
-
-**Live Demo**: https://wsbuddy.app
-
-**Contact**: For questions about the architecture or implementation, please refer to the detailed documentation in the repository.
