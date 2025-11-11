@@ -41,12 +41,11 @@ graph TD
     A[Reddit API] --> B[Kafka Producer]
     B --> C[Kafka Topic: reddit-data]
     C --> D[Spark Processor]
-    D --> E[Ticker Extraction & NLP]
-    E --> F[Kafka Topic: ticker-mentions]
-    F --> G[Logstash]
-    G --> H[Elasticsearch Cluster]
-    H --> I[FastAPI Backend]
-    I --> J[React Frontend]
+    D --> E[Kafka Topic: ticker-mentions]
+    E --> F[Logstash]
+    F --> G[Elasticsearch Cluster]
+    G --> H[FastAPI Backend]
+    H --> I[React Frontend]
 ```
 
 **Data Flow Details:**
