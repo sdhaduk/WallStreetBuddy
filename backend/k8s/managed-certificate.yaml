@@ -1,0 +1,11 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: wsbuddy-ssl-cert
+  namespace: wallstreetbuddy
+  labels:
+    app: wsbuddy-ssl
+spec:
+  domains:
+  - wsbuddy.app
+  - www.wsbuddy.app
