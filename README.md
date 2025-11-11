@@ -1,0 +1,127 @@
+# WallStreetBuddy
+
+**Live Application**: https://wsbuddy.app
+
+A real-time financial sentiment analysis platform that monitors Reddit discussions about stocks, extracts ticker mentions, and provides AI-powered stock analysis through an interactive web dashboard.
+
+## What WallStreetBuddy Does
+
+WallStreetBuddy transforms Reddit financial discussions into actionable insights by:
+
+1. **Real-time Data Collection**: Continuously monitors financial subreddits (r/stocks, r/wallstreetbets, r/ValueInvesting) for stock mentions
+2. **Intelligent Ticker Extraction**: Uses advanced NLP to identify legitimate stock tickers from casual conversations, filtering out false positives
+3. **Trend Analysis**: Tracks mention frequency and sentiment patterns across different time periods
+4. **AI-Powered Research**: Generates comprehensive stock analysis reports using AI that combines Reddit sentiment with market data
+5. **Interactive Dashboard**: Provides a responsive web interface for exploring trending stocks, viewing mention history, and accessing analysis reports
+
+### Core Components
+
+#### Data Ingestion, Pipeline, and Processing
+- **Reddit Producer**: Streams real-time comments and submissions from financial subreddits using PRAW
+- **Apache Kafka**: Message streaming platform with topics for raw data (`reddit-data`) and processed data (`ticker-mentions`)
+- **Spark Processor**: Real-time stream processing for ticker extraction using NLP and financial context analysis
+- **Logstash**: ETL pipeline that consumes ticker mentions from Kafka and loads them into Elasticsearch indices
+
+
+#### Data Storage 
+- **3-Node Elasticsearch Cluster**: High-availability storage with automatic failover and load balancing
+
+#### API & Frontend
+- **FastAPI Backend**: RESTful API with async support, auto-documentation, and health monitoring
+- **React Frontend**: Modern SPA with interactive charts, real-time updates, and responsive design
+- **High Availability**: Both frontend and backend use multi-replica deployments with load balancing for zero-downtime operations
+- **AI Analysis Service**: OpenAI-powered stock research with Yahoo Finance integration
+
+## Pipeline Architecture
+
+### Real-Time Processing Pipeline
+
+```mermaid
+graph LR
+    A[Reddit API] --> B[Kafka Producer]
+    B --> C[Kafka Topic: reddit-data]
+    C --> D[Spark Processor]
+    D --> E[Ticker Extraction & NLP]
+    E --> F[Kafka Topic: ticker-mentions]
+    F --> G[Logstash]
+    G --> H[Elasticsearch Cluster]
+    H --> I[FastAPI Backend]
+    I --> J[React Frontend]
+```
+
+**Data Flow Details:**
+
+1. **Reddit Ingestion**: PRAW-based producer collects real-time comments and submissions
+2. **Stream Processing**: Spark processes data with direct processing (no windowing) and 1-minute trigger intervals
+3. **Ticker Extraction**: Advanced NLP pipeline with:
+   - Dollar pattern recognition (`$AAPL`)
+   - Financial context scoring for ambiguous tickers
+   - Company name resolution using SpaCy NER
+   - SEC ticker validation
+4. **Data Storage**: Processed data stored in time-series Elasticsearch indices
+5. **API Access**: FastAPI provides RESTful endpoints for querying ticker data and analytics
+
+#### Service Communication
+- **Internal**: Kubernetes DNS-based service discovery
+- **External**: GCE ingress with path-based routing (`/api/*` vs `/*`)
+- **API Security**: Internal API keys for service-to-service communication
+
+#### High Availability Features
+- **Node Failure Tolerance**: Elasticsearch cluster maintains quorum with any single node failure
+- **Automatic Failover**: Master election and request routing handled automatically
+- **Load Distribution**: Traffic distributed across multiple replicas via LoadBalancer
+- **Zero Downtime Updates**: Rolling deployments with health check validation
+
+##  Development Setup
+
+### Prerequisites
+- Docker & Docker Compose
+- Node.js 22+ for frontend development
+- Python 3.11+ for backend development
+- Reddit API credentials
+
+### Quick Start
+```bash
+# Backend setup
+cd backend
+pip install -r requirements.txt
+docker-compose up -d  # Start infrastructure services
+python setup/setup_kafka.py  # Create Kafka topics
+python setup/elasticsearch_setup.py  # Setup Elasticsearch
+
+# Environment setup
+echo "REDDIT_CLIENT_ID=your_id" > .env
+echo "REDDIT_CLIENT_SECRET=your_secret" >> .env
+echo "REDDIT_CLIENT_AGENT=your_agent" >> .env
+
+# Start data pipeline
+python pipeline/kafka_producer.py  # Terminal 1
+python pipeline/spark_processor.py  # Terminal 2
+python app.py  # Terminal 3 (FastAPI server)
+
+# Frontend setup
+cd frontend
+npm install
+npm run dev  # http://localhost:5173
+```
+
+### API Endpoints
+- **Health Check**: `GET /api/health`
+- **Top Tickers**: `GET /api/top-10-filtered?timeframe=3d&subreddit=all`
+- **Comments**: `GET /api/comments?timeframe=24h&tickers=AAPL,TSLA`
+- **Home Data**: `GET /api/home-data` (3-day batch data)
+- **Analysis Reports**: `GET /api/analysis/report/{ticker}`
+- **API Documentation**: `http://localhost:8000/docs`
+
+### Monitoring & Health
+- **FastAPI**: http://localhost:8000/docs
+- **Kafka UI**: http://localhost:8080
+- **Elasticsearch**: http://localhost:9200
+- **Frontend**: http://localhost:5173
+
+## Future Enhancements
+- **Sentiment Analysis**: Train a Small Language Model (SLM) using gathered Reddit data to classify sentiment for each stock mention, then aggregate individual message sentiment scores to generate overall stock sentiment metrics 
+
+**Live Demo**: https://wsbuddy.app
+
+**Contact**: For questions about the architecture or implementation, please refer to the detailed documentation in the repository.
