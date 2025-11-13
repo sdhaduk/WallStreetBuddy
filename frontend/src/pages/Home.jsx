@@ -47,7 +47,7 @@ const Home = () => {
       <div className="space-y-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold">Latest Top 10 Stocks</h1>
-          <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span style={{ color: '#1E81B0' }}>(click on any bar to see a report)</span></p>
+          <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span className="text-blue-600 font-medium">(click on any bar to see a report)</span></p>
         </div>
         
         <div className="bg-card p-6 rounded-lg border">
@@ -82,7 +82,7 @@ const Home = () => {
       <div className="space-y-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold">Latest Top 10 Stocks</h1>
-          <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span style={{ color: '#1E81B0' }}>(click on any bar to see a report)</span></p>
+          <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span className="text-blue-600 font-medium">(click on any bar to see a report)</span></p>
         </div>
 
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-8 rounded-lg text-center">
@@ -101,7 +101,7 @@ const Home = () => {
     <div className="space-y-6">
       <div className="text-center">
         <h1 className="text-3xl font-bold">Latest Top 10 Stocks</h1>
-        <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span style={{ color: '#4D96FF' }}>(click on any bar to see a report)</span></p>
+        <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span className="text-blue-600 font-medium">(click on any bar to see a report)</span></p>
       </div>
 
       
@@ -110,8 +110,8 @@ const Home = () => {
         title="Top 10 Most Mentioned Stocks (Latest Batch)"
         enableClick={true}
         height={400}
-        barColor="#1E81B0"
-        hoverColor="#3EA4D0"
+        barColor="var(--chart-home)"
+        hoverColor="var(--chart-home-hover)"
       />
 
       <div className="bg-card p-4 rounded-lg border">

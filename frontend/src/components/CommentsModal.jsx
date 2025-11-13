@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X, Search, MessageSquare, Calendar, Hash } from 'lucide-react'
+import Button from './Button'
 
 const CommentsModal = ({ isOpen, onClose }) => {
   const [tickers, setTickers] = useState('')
@@ -189,26 +190,14 @@ const CommentsModal = ({ isOpen, onClose }) => {
             <MessageSquare className="h-5 w-5 text-gray-700 dark:text-gray-300" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">View Processed Comments</h2>
           </div>
-          <button
+          <Button
             onClick={onClose}
-            className="p-1 rounded-md transition-colors"
-            style={{
-              backgroundColor: '#f3f4f6',
-              border: '1px solid #d1d5db',
-              color: '#374151',
-              padding: '8px',
-              fontSize: 'inherit',
-              fontWeight: 'normal'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#e5e7eb'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#f3f4f6'
-            }}
+            variant="outline"
+            size="sm"
+            className="p-2"
           >
             <X className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
         {/* Search Form */}
@@ -296,29 +285,15 @@ const CommentsModal = ({ isOpen, onClose }) => {
               <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2 opacity-0">
                 Action
               </label>
-              <button
+              <Button
                 onClick={handleSearch}
                 disabled={!isValidValue || loading}
-                className="flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full lg:w-auto justify-center"
-                style={{
-                  backgroundColor: '#f8f9fa',
-                  color: '#343a40',
-                  border: '1px solid #dee2e6'
-                }}
-                onMouseEnter={(e) => {
-                  if (isValidValue && !loading) {
-                    e.target.style.backgroundColor = '#e9ecef'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (isValidValue && !loading) {
-                    e.target.style.backgroundColor = '#f8f9fa'
-                  }
-                }}
+                variant="outline"
+                className="gap-2 w-full lg:w-auto justify-center"
               >
                 <Search className="h-4 w-4" />
                 {loading ? 'Searching...' : 'Search Comments'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -405,28 +380,13 @@ const CommentsModal = ({ isOpen, onClose }) => {
               {/* Load More Button */}
               {hasMore && (
                 <div className="text-center mt-6">
-                  <button
+                  <Button
                     onClick={handleLoadMore}
                     disabled={loadingMore}
-                    className="px-6 py-2 text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: '#f8f9fa',
-                      color: '#343a40',
-                      border: '1px solid #dee2e6'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!loadingMore) {
-                        e.target.style.backgroundColor = '#e9ecef'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!loadingMore) {
-                        e.target.style.backgroundColor = '#f8f9fa'
-                      }
-                    }}
+                    variant="outline"
                   >
                     {loadingMore ? 'Loading...' : 'Load More Comments'}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { ArrowLeft, Maximize2, X } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import BarChart from '../components/BarChart'
+import Button from '../components/Button'
 
 const StockDetail = () => {
   const { symbol } = useParams()
@@ -73,25 +74,15 @@ const StockDetail = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6 w-full" style={{minWidth: '1200px', margin: '0 auto'}}>
+      <div className="space-y-6 w-full" >
         <div className="flex items-center space-x-4">
-          <button
+          <Button
             onClick={() => navigate(-1)}
-            className="p-2 rounded-md transition-colors"
-            style={{
-              backgroundColor: '#f8f9fa',
-              color: '#343a40',
-              border: '1px solid #dee2e6'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#e9ecef'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#f8f9fa'
-            }}
+            variant="outline"
+            size="icon"
           >
             <ArrowLeft className="h-4 w-4" />
-          </button>
+          </Button>
           <div>
             <h1 className="text-3xl font-bold">{symbol?.toUpperCase()}</h1>
             <p className="text-muted-foreground">Stock Analysis & Details</p>
@@ -156,19 +147,15 @@ const StockDetail = () => {
   // Handle case when stockData is null or empty
   if (!stockData) {
     return (
-      <div className="space-y-6 w-full" style={{minWidth: '1200px', margin: '0 auto'}}>
+      <div className="space-y-6 w-full" >
         <div className="flex items-center space-x-4">
-          <button
+          <Button
             onClick={() => navigate(-1)}
-            className="p-2 rounded-md transition-colors"
-            style={{
-              backgroundColor: '#f8f9fa',
-              color: '#343a40',
-              border: '1px solid #dee2e6'
-            }}
+            variant="outline"
+            size="icon"
           >
             <ArrowLeft className="h-4 w-4" />
-          </button>
+          </Button>
           <div>
             <h1 className="text-3xl font-bold">{symbol?.toUpperCase()}</h1>
             <p className="text-muted-foreground">Stock Analysis & Details</p>
@@ -182,25 +169,15 @@ const StockDetail = () => {
   }
 
   return (
-    <div className="space-y-6 w-full" style={{minWidth: '1200px', margin: '0 auto'}}>
+    <div className="space-y-6 w-full" >
       <div className="flex items-center space-x-4">
-        <button
+        <Button
           onClick={() => navigate(-1)}
-          className="p-2 rounded-md transition-colors"
-          style={{
-            backgroundColor: '#f8f9fa',
-            color: '#343a40',
-            border: '1px solid #dee2e6'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = '#e9ecef'
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = '#f8f9fa'
-          }}
+          variant="outline"
+          size="icon"
         >
           <ArrowLeft className="h-4 w-4" />
-        </button>
+        </Button>
         <div>
           <h1 className="text-3xl font-bold">{stockData.symbol}</h1>
           <p className="text-muted-foreground">Stock Analysis & Details</p>
@@ -213,21 +190,16 @@ const StockDetail = () => {
         <div className="bg-card p-6 rounded-lg border">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">AI Analysis <span className="text-xs text-red-600 font-medium">(This is not financial advice)</span></h2>
-            <button
+            <Button
               onClick={() => setShowAnalysisModal(true)}
-              className="flex items-center space-x-1 px-3 py-1 text-sm rounded-md transition-colors"
-              style={{
-                backgroundColor: '#ffffff',
-                color: '#374151',
-                border: '1px solid #d1d5db'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#ffffff'}
+              variant="outline"
+              size="sm"
+              className="gap-1"
               title="View Full Report"
             >
               <Maximize2 className="h-3 w-3" />
               <span>View Full</span>
-            </button>
+            </Button>
           </div>
           <div
             className="relative cursor-pointer group"
@@ -308,8 +280,8 @@ const StockDetail = () => {
         title={`${stockData.symbol} Mention History (Last 7 Days)`}
         enableClick={false}
         height={300}
-        barColor="#E15759"
-        hoverColor="#7c3aed"
+        barColor="var(--chart-stock)"
+        hoverColor="var(--chart-stock-hover)"
       />
 
       {/* AI Analysis Modal */}
@@ -319,20 +291,14 @@ const StockDetail = () => {
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-2xl font-semibold">AI Analysis - {stockData.symbol}</h2>
-              <button
+              <Button
                 onClick={() => setShowAnalysisModal(false)}
-                className="p-2 rounded-full transition-colors"
-                style={{
-                  backgroundColor: '#ffffff',
-                  color: '#374151',
-                  border: '1px solid #d1d5db'
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#ffffff'}
+                variant="outline"
+                size="icon"
                 title="Close"
               >
                 <X className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
 
             {/* Modal Content */}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import BarChart from '../components/BarChart'
 import CommentsModal from '../components/CommentsModal'
 import { RefreshCw, MessageSquare } from 'lucide-react'
+import Button from '../components/Button'
 
 // SubredditSelector Component
 const SubredditSelector = ({ selectedSubreddit, onSubredditChange }) => {
@@ -18,7 +19,7 @@ const SubredditSelector = ({ selectedSubreddit, onSubredditChange }) => {
       <select
         value={selectedSubreddit}
         onChange={(e) => onSubredditChange(e.target.value)}
-        className="w-60 mx-auto px-3 py-2 text-sm border rounded-md bg-card text-foreground border-border focus:border-primary focus:ring-1 focus:ring-primary"
+        className="w-full max-w-xs mx-auto px-3 py-2 text-sm border rounded-md bg-card text-foreground border-border focus:border-primary focus:ring-1 focus:ring-primary"
       >
         {subreddits.map((subreddit) => (
           <option key={subreddit.value} value={subreddit.value}>
@@ -67,7 +68,7 @@ const TimeSelector = ({ timeValue, timeUnit, onTimeValueChange, onTimeUnitChange
               onTimeValueChange(parseInt(value) || 1)
             }
           }}
-          className={`w-20 px-3 py-2 text-sm border rounded-md bg-card text-foreground ${
+          className={`w-16 px-2 py-2 text-sm border rounded-md bg-card text-foreground ${
             isValidValue
               ? 'border-border focus:border-primary focus:ring-1 focus:ring-primary'
               : 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
@@ -129,28 +130,14 @@ const FilterControls = ({
         />
       </div>
       <div className="flex justify-center">
-        <button
+        <Button
           onClick={onApplyFilters}
           disabled={!isValidForApply || loading}
-          className="px-3 py-1 text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            backgroundColor: '#f8f9fa',
-            color: '#343a40',
-            border: '1px solid #dee2e6'
-          }}
-          onMouseEnter={(e) => {  
-            if (isValidForApply && !loading) {
-              e.target.style.backgroundColor = '#e9ecef'
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (isValidForApply && !loading) {
-              e.target.style.backgroundColor = '#f8f9fa'
-            }
-          }}
+          variant="outline"
+          size="sm"
         >
           Apply Filters
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -346,35 +333,22 @@ const Current = () => {
             <span>Loading...</span>
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={() => setIsCommentsModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1 text-sm rounded-md transition-colors"
-              style={{
-                backgroundColor: '#f8f9fa',
-                color: '#343a40',
-                border: '1px solid #dee2e6'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#e9ecef'
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#f8f9fa'
-              }}
+              variant="outline"
+              size="sm"
+              className="gap-2"
             >
               <MessageSquare className="h-4 w-4" />
               View Comments
-            </button>
-            <button
+            </Button>
+            <Button
               disabled={true}
-              className="px-3 py-1 text-sm rounded-md transition-colors disabled:opacity-50"
-              style={{
-                backgroundColor: '#f8f9fa',
-                color: '#343a40',
-                border: '1px solid #dee2e6'
-              }}
+              variant="outline"
+              size="sm"
             >
               Refresh Now
-            </button>
+            </Button>
           </div>
         </div>
         
@@ -432,46 +406,23 @@ const Current = () => {
           </span>
         </div>
         <div className="flex gap-2">
-          <button
+          <Button
             onClick={() => setIsCommentsModalOpen(true)}
-            className="flex items-center gap-2 px-3 py-1 text-sm rounded-md transition-colors"
-            style={{
-              backgroundColor: '#f8f9fa',
-              color: '#343a40',
-              border: '1px solid #dee2e6'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#e9ecef'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#f8f9fa'
-            }}
+            variant="outline"
+            size="sm"
+            className="gap-2"
           >
             <MessageSquare className="h-4 w-4" />
             Search Comments
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={fetchCurrentData}
             disabled={loading}
-            className="px-3 py-1 text-sm rounded-md transition-colors disabled:opacity-50"
-            style={{
-              backgroundColor: '#f8f9fa',
-              color: '#343a40',
-              border: '1px solid #dee2e6'
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.target.style.backgroundColor = '#e9ecef'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) {
-                e.target.style.backgroundColor = '#f8f9fa'
-              }
-            }}
+            variant="outline"
+            size="sm"
           >
             Refresh Now
-          </button>
+          </Button>
         </div>
       </div>
       
@@ -480,8 +431,8 @@ const Current = () => {
         title={`${getDynamicTitle()} (Live Count)`}
         enableClick={false}
         height={400}
-        barColor="#059669"
-        hoverColor="#2DD4BF"
+        barColor="var(--chart-current)"
+        hoverColor="var(--chart-current-hover)"
       />
 
       <div className="bg-card p-4 rounded-lg border">
@@ -506,8 +457,8 @@ const Current = () => {
         </div>
       </div>
 
-      <div className="p-4 rounded-lg border" style={{ backgroundColor: '#E2F8D8', borderColor: '#3AB795' }}>
-        <p className="text-sm" style={{ color: '#14532D' }}>
+      <div className="p-4 rounded-lg border bg-green-50 border-green-400">
+        <p className="text-sm text-green-800">
           ℹ️ This data represents live counting in progress. Charts are not clickable as analysis is not yet complete.
         </p>
       </div>
