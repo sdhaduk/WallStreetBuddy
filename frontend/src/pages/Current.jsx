@@ -312,7 +312,7 @@ const Current = () => {
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">Live Count</h1>
+          <h1 className="text-3xl md:text-5xl lg:text-5xl font-bold">Live Count</h1>
           <p className="text-muted-foreground mt-2">Live count of mentions from {getSubredditDisplayName()} in the last {getTimeDisplayText()}</p>
         </div>
 
@@ -353,7 +353,7 @@ const Current = () => {
         </div>
         
         <div className="bg-card p-6 rounded-lg border">
-          <h3 className="text-xl font-semibold mb-4">{getDynamicTitle()} (Live Count)</h3>
+          <h3 className="text-base sm:text-xl font-semibold mb-4">{getDynamicTitle()} (Live Count)</h3>
           <div className="h-96 bg-muted rounded animate-pulse flex items-center justify-center">
             <p className="text-muted-foreground">Loading chart...</p>
           </div>
@@ -381,7 +381,7 @@ const Current = () => {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold">Live Count</h1>
+        <h1 className="text-3xl md:text-5xl lg:text-5xl font-bold">Live Count</h1>
         <p className="text-muted-foreground mt-2">Live count of mentions from {getSubredditDisplayName()} in the last {getTimeDisplayText()}</p>
       </div>
 
