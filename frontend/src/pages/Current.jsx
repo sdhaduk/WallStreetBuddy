@@ -437,24 +437,12 @@ const Current = () => {
 
       <div className="bg-card p-4 rounded-lg border">
         <h3 className="font-semibold mb-2 text-center">Current Filter Information</h3>
-        <div className="text-sm text-muted-foreground space-y-1">
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Source: {getSubredditDisplayName()}</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Time Range: Last {getTimeDisplayText()}</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Total mentions: {totalMentions.toLocaleString()}</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Next update: Automatic refresh every minute</span>
-          </div>
-        </div>
+        <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 text-left">
+          <li>Source: {getSubredditDisplayName()}</li>
+          <li>Time Range: Last {getTimeDisplayText()}</li>
+          <li>Total mentions: {totalMentions.toLocaleString()}</li>
+          <li>Automatic refresh every minute</li>
+        </ul>
       </div>
 
       <div className="p-4 rounded-lg border bg-green-50 border-green-400">
