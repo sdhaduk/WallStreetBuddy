@@ -42,8 +42,8 @@ const BarChart = ({
 
   if (!data || data.length === 0) {
     return (
-      <div className="bg-card p-4 sm:p-6 rounded-lg border">
-        <h3 className="text-lg sm:text-xl font-semibold mb-4">{title}</h3>
+      <div className="bg-card p-2 sm:p-6 rounded-lg border">
+        <h3 className="text-base sm:text-xl font-semibold mb-4">{title}</h3>
         <div className="h-64 flex items-center justify-center">
           <p className="text-muted-foreground">No data available</p>
         </div>
@@ -52,9 +52,9 @@ const BarChart = ({
   }
 
   return (
-    <div className="bg-card p-4 sm:p-6 rounded-lg border w-full">
-      <h3 className="text-lg sm:text-xl font-semibold mb-4">{title}</h3>
-      <div style={{ height: `${height}px` }}>
+    <div className="bg-card p-2 sm:p-6 rounded-lg border w-full">
+      <h3 className="text-base sm:text-xl font-semibold mb-4">{title}</h3>
+      <div style={{ height: `${isMobile ? 350 : height}px` }}>
         <ResponsiveContainer width="100%" height="100%">
           <RechartsBarChart
             data={data}

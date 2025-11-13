@@ -46,12 +46,12 @@ const Home = () => {
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">Latest Top 10 Stocks</h1>
+          <h1 className="text-3xl md:text-5xl lg:text-5xl font-bold">Latest Top 10 Stocks</h1>
           <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span className="text-blue-600 font-medium">(click on any bar to see a report)</span></p>
         </div>
         
         <div className="bg-card p-6 rounded-lg border">
-          <h3 className="text-xl font-semibold mb-4">Top 10 Most Mentioned Stocks (Latest Batch)</h3>
+          <h3 className="text-base sm:text-xl font-semibold mb-4">Top 10 Most Mentioned Stocks (Latest Batch)</h3>
           <div className="h-96 bg-muted rounded animate-pulse flex items-center justify-center">
             <p className="text-muted-foreground">Loading chart...</p>
           </div>
@@ -81,7 +81,7 @@ const Home = () => {
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">Latest Top 10 Stocks</h1>
+          <h1 className="text-3xl md:text-5xl lg:text-5xl font-bold">Latest Top 10 Stocks</h1>
           <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span className="text-blue-600 font-medium">(click on any bar to see a report)</span></p>
         </div>
 
@@ -100,7 +100,7 @@ const Home = () => {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold">Latest Top 10 Stocks</h1>
+        <h1 className="text-3xl md:text-5xl lg:text-5xl font-bold">Latest Top 10 Stocks</h1>
         <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span className="text-blue-600 font-medium">(click on any bar to see a report)</span></p>
       </div>
 
@@ -116,22 +116,13 @@ const Home = () => {
 
       <div className="bg-card p-4 rounded-lg border">
         <h3 className="font-semibold mb-2 text-center">Batch Information</h3>
-        <div className="text-sm text-muted-foreground space-y-1">
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Data period: {batchInfo ?
-              `${new Date(batchInfo.batch_start).toLocaleString()} - ${new Date(batchInfo.batch_end).toLocaleString()}`
-              : 'Latest completed 3-day batch'}</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Total mentions: {totalMentions.toLocaleString()}</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Analysis reports available for each ticker</span>
-          </div>
-        </div>
+        <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 text-left">
+          <li>Data period: {batchInfo ?
+            `${new Date(batchInfo.batch_start).toLocaleString()} - ${new Date(batchInfo.batch_end).toLocaleString()}`
+            : 'Latest completed 3-day batch'}</li>
+          <li>Total mentions: {totalMentions.toLocaleString()}</li>
+          <li>Analysis reports available for each ticker</li>
+        </ul>
       </div>
 
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
