@@ -329,8 +329,8 @@ const Current = () => {
 
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <RefreshCw className="h-4 w-4" />
-            <span>Loading...</span>
+            <RefreshCw className="h-4 w-4 hidden sm:inline" />
+            <span className="hidden sm:inline">Loading...</span>
           </div>
           <div className="flex gap-2">
             <Button
@@ -398,11 +398,11 @@ const Current = () => {
 
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-          <RefreshCw className={`h-4 w-4 ${loading || filtersChanged ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 hidden sm:inline ${loading || filtersChanged ? 'animate-spin' : ''}`} />
           <span>
             {filtersChanged ? 'Applying filters...' :
              loading ? 'Loading...' :
-             `Last updated: ${lastUpdated ? lastUpdated.toLocaleTimeString() : 'Loading...'}`}
+             <span className="hidden sm:inline">{`Last updated: ${lastUpdated ? lastUpdated.toLocaleTimeString() : 'Loading...'}`}</span>}
           </span>
         </div>
         <div className="flex gap-2">
