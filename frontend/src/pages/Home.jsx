@@ -46,12 +46,12 @@ const Home = () => {
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">Latest Top 10 Stocks</h1>
-          <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span style={{ color: '#1E81B0' }}>(click on any bar to see a report)</span></p>
+          <h1 className="text-3xl md:text-5xl lg:text-5xl font-bold">Latest Top 10 Stocks</h1>
+          <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span className="text-blue-600 font-medium">(click on any bar to see a report)</span></p>
         </div>
         
         <div className="bg-card p-6 rounded-lg border">
-          <h3 className="text-xl font-semibold mb-4">Top 10 Most Mentioned Stocks (Latest Batch)</h3>
+          <h3 className="text-base sm:text-xl font-semibold mb-4">Top 10 Most Mentioned Stocks (Latest Batch)</h3>
           <div className="h-96 bg-muted rounded animate-pulse flex items-center justify-center">
             <p className="text-muted-foreground">Loading chart...</p>
           </div>
@@ -81,17 +81,24 @@ const Home = () => {
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">Latest Top 10 Stocks</h1>
-          <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span style={{ color: '#1E81B0' }}>(click on any bar to see a report)</span></p>
+          <h1 className="text-xl md:text-2xl lg:text-5xl font-bold">Latest Top 10 Stocks</h1>
+          <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span className="text-blue-600 font-medium">(click on any bar to see a report)</span></p>
         </div>
 
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-8 rounded-lg text-center">
-          <h3 className="text-xl font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
-            📊 More data required
-          </h3>
-          <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
-            Waiting for the next 3-day batch to complete data collection
-          </p>
+        <BarChart
+          data={[]}
+          title="Top 10 Most Mentioned Stocks (Latest Batch)"
+          enableClick={false}
+          height={400}
+          barColor="var(--chart-home)"
+          hoverColor="var(--chart-home-hover)"
+        />
+
+        <div className="bg-card p-4 rounded-lg border">
+          <h3 className="font-semibold mb-2 text-center">Batch Information</h3>
+          <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 text-left">
+            <li>There is currently no data, waiting for newest 3 day batch to complete.</li>
+          </ul>
         </div>
       </div>
     )
@@ -100,8 +107,8 @@ const Home = () => {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold">Latest Top 10 Stocks</h1>
-        <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span style={{ color: '#4D96FF' }}>(click on any bar to see a report)</span></p>
+        <h1 className="text-3xl md:text-5xl lg:text-5xl font-bold">Latest Top 10 Stocks</h1>
+        <p className="text-muted-foreground mt-2">Most recent completed 3-day batch results <span className="text-blue-600 font-medium">(click on any bar to see a report)</span></p>
       </div>
 
       
@@ -110,28 +117,19 @@ const Home = () => {
         title="Top 10 Most Mentioned Stocks (Latest Batch)"
         enableClick={true}
         height={400}
-        barColor="#1E81B0"
-        hoverColor="#3EA4D0"
+        barColor="var(--chart-home)"
+        hoverColor="var(--chart-home-hover)"
       />
 
       <div className="bg-card p-4 rounded-lg border">
         <h3 className="font-semibold mb-2 text-center">Batch Information</h3>
-        <div className="text-sm text-muted-foreground space-y-1">
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Data period: {batchInfo ?
-              `${new Date(batchInfo.batch_start).toLocaleString()} - ${new Date(batchInfo.batch_end).toLocaleString()}`
-              : 'Latest completed 3-day batch'}</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Total mentions: {totalMentions.toLocaleString()}</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Analysis reports available for each ticker</span>
-          </div>
-        </div>
+        <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 text-left">
+          <li>Data period: {batchInfo ?
+            `${new Date(batchInfo.batch_start).toLocaleString()} - ${new Date(batchInfo.batch_end).toLocaleString()}`
+            : 'Latest completed 3-day batch'}</li>
+          <li>Total mentions: {totalMentions.toLocaleString()}</li>
+          <li>Analysis reports available for each ticker</li>
+        </ul>
       </div>
 
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">

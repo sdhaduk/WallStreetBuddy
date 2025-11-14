@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import BarChart from '../components/BarChart'
 import CommentsModal from '../components/CommentsModal'
 import { RefreshCw, MessageSquare } from 'lucide-react'
+import Button from '../components/Button'
 
 // SubredditSelector Component
 const SubredditSelector = ({ selectedSubreddit, onSubredditChange }) => {
@@ -13,12 +14,12 @@ const SubredditSelector = ({ selectedSubreddit, onSubredditChange }) => {
   ]
 
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-foreground text-center block">Subreddit</label>
+    <div className="space-y-2 justify-self-start md:justify-self-center">
+      <label className="text-sm font-medium text-foreground text-left sm:text-center block">Subreddit</label>
       <select
         value={selectedSubreddit}
         onChange={(e) => onSubredditChange(e.target.value)}
-        className="w-60 mx-auto px-3 py-2 text-sm border rounded-md bg-card text-foreground border-border focus:border-primary focus:ring-1 focus:ring-primary"
+        className="w-full max-w-[200px] sm:max-w-[320px] md:mx-auto px-3 py-2 text-sm border rounded-md bg-card text-foreground border-border focus:border-primary focus:ring-1 focus:ring-primary"
       >
         {subreddits.map((subreddit) => (
           <option key={subreddit.value} value={subreddit.value}>
@@ -52,8 +53,8 @@ const TimeSelector = ({ timeValue, timeUnit, onTimeValueChange, onTimeUnitChange
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-foreground text-center block">Time Period</label>
-      <div className="flex items-center justify-center gap-2">
+      <label className="text-sm font-medium text-foreground text-left sm:text-center block">Time Period</label>
+      <div className="flex items-center justify-start sm:justify-center gap-2">
         <input
           type="number"
           min="1"
@@ -67,7 +68,7 @@ const TimeSelector = ({ timeValue, timeUnit, onTimeValueChange, onTimeUnitChange
               onTimeValueChange(parseInt(value) || 1)
             }
           }}
-          className={`w-20 px-3 py-2 text-sm border rounded-md bg-card text-foreground ${
+          className={`w-16 px-2 py-2 text-sm border rounded-md bg-card text-foreground ${
             isValidValue
               ? 'border-border focus:border-primary focus:ring-1 focus:ring-primary'
               : 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
@@ -85,7 +86,7 @@ const TimeSelector = ({ timeValue, timeUnit, onTimeValueChange, onTimeUnitChange
           ))}
         </select>
       </div>
-      <p className={`text-xs text-center ${isValidValue ? 'text-muted-foreground' : 'text-red-500'}`}>
+      <p className={`text-xs text-left sm:text-center ${isValidValue ? 'text-muted-foreground' : 'text-red-500'}`}>
         ({getDisplayText()})
       </p>
     </div>
@@ -128,29 +129,15 @@ const FilterControls = ({
           onTimeUnitChange={onTimeUnitChange}
         />
       </div>
-      <div className="flex justify-center">
-        <button
+      <div className="flex justify-start sm:justify-center">
+        <Button
           onClick={onApplyFilters}
           disabled={!isValidForApply || loading}
-          className="px-3 py-1 text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            backgroundColor: '#f8f9fa',
-            color: '#343a40',
-            border: '1px solid #dee2e6'
-          }}
-          onMouseEnter={(e) => {  
-            if (isValidForApply && !loading) {
-              e.target.style.backgroundColor = '#e9ecef'
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (isValidForApply && !loading) {
-              e.target.style.backgroundColor = '#f8f9fa'
-            }
-          }}
+          variant="outline"
+          size="sm"
         >
           Apply Filters
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -325,7 +312,7 @@ const Current = () => {
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">Live Count</h1>
+          <h1 className="text-3xl md:text-5xl lg:text-5xl font-bold">Live Count</h1>
           <p className="text-muted-foreground mt-2">Live count of mentions from {getSubredditDisplayName()} in the last {getTimeDisplayText()}</p>
         </div>
 
@@ -342,44 +329,31 @@ const Current = () => {
 
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <RefreshCw className="h-4 w-4" />
-            <span>Loading...</span>
+            <RefreshCw className="h-4 w-4 hidden sm:inline" />
+            <span className="hidden sm:inline">Loading...</span>
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={() => setIsCommentsModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1 text-sm rounded-md transition-colors"
-              style={{
-                backgroundColor: '#f8f9fa',
-                color: '#343a40',
-                border: '1px solid #dee2e6'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#e9ecef'
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#f8f9fa'
-              }}
+              variant="outline"
+              size="sm"
+              className="gap-2"
             >
               <MessageSquare className="h-4 w-4" />
               View Comments
-            </button>
-            <button
+            </Button>
+            <Button
               disabled={true}
-              className="px-3 py-1 text-sm rounded-md transition-colors disabled:opacity-50"
-              style={{
-                backgroundColor: '#f8f9fa',
-                color: '#343a40',
-                border: '1px solid #dee2e6'
-              }}
+              variant="outline"
+              size="sm"
             >
               Refresh Now
-            </button>
+            </Button>
           </div>
         </div>
         
         <div className="bg-card p-6 rounded-lg border">
-          <h3 className="text-xl font-semibold mb-4">{getDynamicTitle()} (Live Count)</h3>
+          <h3 className="text-base sm:text-xl font-semibold mb-4">{getDynamicTitle()} (Live Count)</h3>
           <div className="h-96 bg-muted rounded animate-pulse flex items-center justify-center">
             <p className="text-muted-foreground">Loading chart...</p>
           </div>
@@ -407,7 +381,7 @@ const Current = () => {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold">Live Count</h1>
+        <h1 className="text-3xl md:text-5xl lg:text-5xl font-bold">Live Count</h1>
         <p className="text-muted-foreground mt-2">Live count of mentions from {getSubredditDisplayName()} in the last {getTimeDisplayText()}</p>
       </div>
 
@@ -424,54 +398,31 @@ const Current = () => {
 
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-          <RefreshCw className={`h-4 w-4 ${loading || filtersChanged ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 hidden sm:inline ${loading || filtersChanged ? 'animate-spin' : ''}`} />
           <span>
             {filtersChanged ? 'Applying filters...' :
              loading ? 'Loading...' :
-             `Last updated: ${lastUpdated ? lastUpdated.toLocaleTimeString() : 'Loading...'}`}
+             <span className="hidden sm:inline">{`Last updated: ${lastUpdated ? lastUpdated.toLocaleTimeString() : 'Loading...'}`}</span>}
           </span>
         </div>
         <div className="flex gap-2">
-          <button
+          <Button
             onClick={() => setIsCommentsModalOpen(true)}
-            className="flex items-center gap-2 px-3 py-1 text-sm rounded-md transition-colors"
-            style={{
-              backgroundColor: '#f8f9fa',
-              color: '#343a40',
-              border: '1px solid #dee2e6'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#e9ecef'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#f8f9fa'
-            }}
+            variant="outline"
+            size="sm"
+            className="gap-2"
           >
             <MessageSquare className="h-4 w-4" />
             Search Comments
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={fetchCurrentData}
             disabled={loading}
-            className="px-3 py-1 text-sm rounded-md transition-colors disabled:opacity-50"
-            style={{
-              backgroundColor: '#f8f9fa',
-              color: '#343a40',
-              border: '1px solid #dee2e6'
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.target.style.backgroundColor = '#e9ecef'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) {
-                e.target.style.backgroundColor = '#f8f9fa'
-              }
-            }}
+            variant="outline"
+            size="sm"
           >
             Refresh Now
-          </button>
+          </Button>
         </div>
       </div>
       
@@ -479,35 +430,23 @@ const Current = () => {
         data={currentData}
         title={`${getDynamicTitle()} (Live Count)`}
         enableClick={false}
-        height={400}
-        barColor="#059669"
-        hoverColor="#2DD4BF"
+        height={350}
+        barColor="var(--chart-current)"
+        hoverColor="var(--chart-current-hover)"
       />
 
       <div className="bg-card p-4 rounded-lg border">
         <h3 className="font-semibold mb-2 text-center">Current Filter Information</h3>
-        <div className="text-sm text-muted-foreground space-y-1">
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Source: {getSubredditDisplayName()}</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Time Range: Last {getTimeDisplayText()}</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Total mentions: {totalMentions.toLocaleString()}</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>Next update: Automatic refresh every minute</span>
-          </div>
-        </div>
+        <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 text-left">
+          <li>Source: {getSubredditDisplayName()}</li>
+          <li>Time Range: Last {getTimeDisplayText()}</li>
+          <li>Total mentions: {totalMentions.toLocaleString()}</li>
+          <li>Automatic refresh every minute</li>
+        </ul>
       </div>
 
-      <div className="p-4 rounded-lg border" style={{ backgroundColor: '#E2F8D8', borderColor: '#3AB795' }}>
-        <p className="text-sm" style={{ color: '#14532D' }}>
+      <div className="p-4 rounded-lg border bg-green-50 border-green-400">
+        <p className="text-sm text-green-800">
           ℹ️ This data represents live counting in progress. Charts are not clickable as analysis is not yet complete.
         </p>
       </div>
