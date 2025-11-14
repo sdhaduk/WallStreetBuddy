@@ -401,7 +401,7 @@ const Current = () => {
           <RefreshCw className={`h-4 w-4 hidden sm:inline ${loading || filtersChanged ? 'animate-spin' : ''}`} />
           <span>
             {filtersChanged ? 'Applying filters...' :
-             loading ? 'Loading...' :
+             loading ? <span className="hidden sm:inline">Loading...</span> :
              <span className="hidden sm:inline">{`Last updated: ${lastUpdated ? lastUpdated.toLocaleTimeString() : 'Loading...'}`}</span>}
           </span>
         </div>
