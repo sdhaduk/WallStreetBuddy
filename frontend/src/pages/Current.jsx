@@ -14,12 +14,12 @@ const SubredditSelector = ({ selectedSubreddit, onSubredditChange }) => {
   ]
 
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-foreground text-center block">Subreddit</label>
+    <div className="space-y-2 justify-self-start md:justify-self-center">
+      <label className="text-sm font-medium text-foreground text-left sm:text-center block">Subreddit</label>
       <select
         value={selectedSubreddit}
         onChange={(e) => onSubredditChange(e.target.value)}
-        className="w-full max-w-xs mx-auto px-3 py-2 text-sm border rounded-md bg-card text-foreground border-border focus:border-primary focus:ring-1 focus:ring-primary"
+        className="w-full max-w-[200px] sm:max-w-[320px] md:mx-auto px-3 py-2 text-sm border rounded-md bg-card text-foreground border-border focus:border-primary focus:ring-1 focus:ring-primary"
       >
         {subreddits.map((subreddit) => (
           <option key={subreddit.value} value={subreddit.value}>
@@ -53,8 +53,8 @@ const TimeSelector = ({ timeValue, timeUnit, onTimeValueChange, onTimeUnitChange
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-foreground text-center block">Time Period</label>
-      <div className="flex items-center justify-center gap-2">
+      <label className="text-sm font-medium text-foreground text-left sm:text-center block">Time Period</label>
+      <div className="flex items-center justify-start sm:justify-center gap-2">
         <input
           type="number"
           min="1"
@@ -86,7 +86,7 @@ const TimeSelector = ({ timeValue, timeUnit, onTimeValueChange, onTimeUnitChange
           ))}
         </select>
       </div>
-      <p className={`text-xs text-center ${isValidValue ? 'text-muted-foreground' : 'text-red-500'}`}>
+      <p className={`text-xs text-left sm:text-center ${isValidValue ? 'text-muted-foreground' : 'text-red-500'}`}>
         ({getDisplayText()})
       </p>
     </div>
@@ -129,7 +129,7 @@ const FilterControls = ({
           onTimeUnitChange={onTimeUnitChange}
         />
       </div>
-      <div className="flex justify-center">
+      <div className="flex justify-start sm:justify-center">
         <Button
           onClick={onApplyFilters}
           disabled={!isValidForApply || loading}
