@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: gcr.io/wallstreetbuddy/frontend:v3
+        image: gcr.io/wallstreetbuddy/frontend:v4
         ports:
         - containerPort: 80
         resources:
