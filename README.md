@@ -11,8 +11,8 @@ WallStreetBuddy transforms Reddit financial discussions into actionable insights
 1. **Real-time Data Collection**: Continuously monitors financial subreddits (r/stocks, r/wallstreetbets, r/ValueInvesting) for stock mentions
 2. **Ticker Extraction**: Uses NLP to identify legitimate stock tickers from casual conversations, filtering out false positives
 3. **Trend Analysis**: Tracks mention frequency across different time periods
-4. AI-Powered Research: AI agent with specialized tools that leverage the yfinance API to generate comprehensive stock analysis reports every three days on the top ten most mentioned tickers. 
-5. **Interactive Dashboard**: Provides a responsive web interface for exploring trending stocks, viewing mention history, and accessing analysis reports
+4. **AI-Powered Research**: AI agent with specialized tools that leverage the yfinance API to generate comprehensive stock analysis reports every three days on the top ten most mentioned tickers. 
+5. **Interactive Dashboard**: Provides a responsive web interface for exploring trending stocks, viewing and filterting through gathered comments, and accessing analysis reports.
 
 ### Core Components
 
