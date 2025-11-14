@@ -52,9 +52,9 @@ const BarChart = ({
   }
 
   return (
-    <div className="bg-card p-2 sm:p-6 rounded-lg border w-full">
+    <div className="bg-card p-1 sm:pt-6 sm:px-6 sm:pb-2 rounded-lg border w-full">
       <h3 className="text-base sm:text-xl font-semibold mb-4">{title}</h3>
-      <div style={{ height: `${isMobile ? 350 : height}px` }}>
+      <div style={{ height: `${isMobile ? 220 : height}px` }}>
         <ResponsiveContainer width="100%" height="100%">
           <RechartsBarChart
             data={data}
@@ -63,7 +63,7 @@ const BarChart = ({
               top: 20,
               right: isMobile ? 10 : 30,
               left: isMobile ? 10 : 20,
-              bottom: isMobile ? 60 : 20
+              bottom: isMobile ? 15 : 5
             }}
           >
             <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -73,7 +73,7 @@ const BarChart = ({
               tick={{ fontSize: isMobile ? 10 : 12, fontWeight: 'bold' }}
               angle={isMobile ? -45 : 0}
               textAnchor={isMobile ? 'end' : 'middle'}
-              height={isMobile ? 60 : 30}
+              height={isMobile ? 35 : 20}
             />
             <YAxis
               className="text-sm"

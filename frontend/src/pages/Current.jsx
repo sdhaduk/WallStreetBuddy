@@ -430,7 +430,7 @@ const Current = () => {
         data={currentData}
         title={`${getDynamicTitle()} (Live Count)`}
         enableClick={false}
-        height={400}
+        height={350}
         barColor="var(--chart-current)"
         hoverColor="var(--chart-current-hover)"
       />
