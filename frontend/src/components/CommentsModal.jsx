@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { X, Search, MessageSquare, Calendar, Hash } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, Search, MessageSquare, Calendar, Hash, ChevronDown, ChevronUp } from 'lucide-react'
+import Button from './Button'
 
 const CommentsModal = ({ isOpen, onClose }) => {
   const [tickers, setTickers] = useState('')
@@ -13,6 +14,24 @@ const CommentsModal = ({ isOpen, onClose }) => {
   const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [filtersExpanded, setFiltersExpanded] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 640 // sm breakpoint
+      setIsMobile(mobile)
+      // On desktop, always expand filters; on mobile, start collapsed
+      if (!mobile) {
+        setFiltersExpanded(true)
+      }
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const timeUnits = [
     { value: 'minutes', label: 'Minutes', max: 10080 },
@@ -127,6 +146,11 @@ const CommentsModal = ({ isOpen, onClose }) => {
     setCursor(null)
     setHasMore(false)
 
+    // Auto-collapse filters after search on mobile
+    if (isMobile) {
+      setFiltersExpanded(false)
+    }
+
     // Call API to fetch comments
     fetchComments(false)
   }
@@ -134,6 +158,7 @@ const CommentsModal = ({ isOpen, onClose }) => {
   const handleLoadMore = () => {
     fetchComments(true)
   }
+
 
   // Function to convert UTC timestamp to local time
   const formatLocalTime = (comment) => {
@@ -182,149 +207,171 @@ const CommentsModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-[95vw] h-[95vh] flex flex-col shadow-xl">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-[95vw] h-[95vh] flex flex-col shadow-xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-gray-700 dark:text-gray-300" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">View Processed Comments</h2>
           </div>
-          <button
+          <Button
             onClick={onClose}
-            className="p-1 rounded-md transition-colors"
-            style={{
-              backgroundColor: '#f3f4f6',
-              border: '1px solid #d1d5db',
-              color: '#374151',
-              padding: '8px',
-              fontSize: 'inherit',
-              fontWeight: 'normal'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#e5e7eb'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#f3f4f6'
-            }}
+            variant="outline"
+            size="sm"
+            className="p-2"
           >
             <X className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
         {/* Search Form */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Ticker Input */}
-            <div className="w-full lg:w-96">
-              <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2">
-                Tickers (comma-separated)
-              </label>
-              <input
-                type="text"
-                value={tickers}
-                onChange={(e) => setTickers(e.target.value)}
-                placeholder="e.g., AAPL, TSLA, NVDA (leave empty for all)"
-                className="w-full px-3 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                Leave empty to see all comments from the timeframe
-              </p>
-            </div>
+          {/* Mobile: Collapsible Filters or Desktop: Always Expanded */}
+          {(!isMobile || filtersExpanded) ? (
+            <div>
+              {/* Expanded Filter Form */}
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Ticker Input */}
+                <div className="w-full lg:w-96">
+                  <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2">
+                    Tickers (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={tickers}
+                    onChange={(e) => setTickers(e.target.value)}
+                    placeholder="e.g., AAPL, TSLA, NVDA (leave empty for all)"
+                    className="w-full px-3 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    Leave empty to see all comments from the timeframe
+                  </p>
+                </div>
 
-            {/* Subreddit Filter */}
-            <div className="flex-shrink-0 w-full lg:w-48">
-              <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2">
-                Subreddit
-              </label>
-              <select
-                value={subreddit}
-                onChange={(e) => setSubreddit(e.target.value)}
-                className="w-full px-3 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              >
-                {subreddits.map((sub) => (
-                  <option key={sub.value} value={sub.value}>
-                    {sub.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+                {/* Subreddit Filter */}
+                <div className="flex-shrink-0 w-full lg:w-48">
+                  <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2">
+                    Subreddit
+                  </label>
+                  <select
+                    value={subreddit}
+                    onChange={(e) => setSubreddit(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  >
+                    {subreddits.map((sub) => (
+                      <option key={sub.value} value={sub.value}>
+                        {sub.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            {/* Time Period */}
-            <div className="flex-shrink-0 w-full lg:w-64">
-              <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2">
-                Time Period
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  max={maxValue}
-                  value={timeValue}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    if (value === '') {
-                      setTimeValue('')
-                    } else {
-                      setTimeValue(parseInt(value) || 1)
-                    }
-                  }}
-                  className={`w-20 px-2 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                    isValidValue
-                      ? 'border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-                      : 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
-                  }`}
-                />
-                <select
-                  value={timeUnit}
-                  onChange={(e) => setTimeUnit(e.target.value)}
-                  className="flex-1 px-2 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                >
-                  {timeUnits.map((unit) => (
-                    <option key={unit.value} value={unit.value}>
-                      {unit.label}
-                    </option>
-                  ))}
-                </select>
+                {/* Time Period */}
+                <div className="flex-shrink-0 w-full lg:w-64">
+                  <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2">
+                    Time Period
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max={maxValue}
+                      value={timeValue}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        if (value === '') {
+                          setTimeValue('')
+                        } else {
+                          setTimeValue(parseInt(value) || 1)
+                        }
+                      }}
+                      className={`w-20 px-2 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                        isValidValue
+                          ? 'border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                          : 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                      }`}
+                    />
+                    <select
+                      value={timeUnit}
+                      onChange={(e) => setTimeUnit(e.target.value)}
+                      className="flex-1 px-2 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    >
+                      {timeUnits.map((unit) => (
+                        <option key={unit.value} value={unit.value}>
+                          {unit.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className={`text-xs mt-1 ${isValidValue ? 'text-gray-600 dark:text-gray-400' : 'text-red-500'}`}>
+                    ({getTimeDisplayText()})
+                  </p>
+                </div>
+
+                {/* Search Button */}
+                <div className="flex-shrink-0 w-full lg:w-auto">
+                  <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2 opacity-0">
+                    Action
+                  </label>
+                  <Button
+                    onClick={handleSearch}
+                    disabled={!isValidValue || loading}
+                    variant="outline"
+                    className="gap-2 w-full lg:w-auto justify-center"
+                  >
+                    <Search className="h-4 w-4" />
+                    {loading ? 'Searching...' : 'Search Comments'}
+                  </Button>
+                </div>
               </div>
-              <p className={`text-xs mt-1 ${isValidValue ? 'text-gray-600 dark:text-gray-400' : 'text-red-500'}`}>
-                ({getTimeDisplayText()})
-              </p>
-            </div>
 
-            {/* Search Button */}
-            <div className="flex-shrink-0 w-full lg:w-auto">
-              <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2 opacity-0">
-                Action
-              </label>
-              <button
-                onClick={handleSearch}
-                disabled={!isValidValue || loading}
-                className="flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full lg:w-auto justify-center"
-                style={{
-                  backgroundColor: '#f8f9fa',
-                  color: '#343a40',
-                  border: '1px solid #dee2e6'
-                }}
-                onMouseEnter={(e) => {
-                  if (isValidValue && !loading) {
-                    e.target.style.backgroundColor = '#e9ecef'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (isValidValue && !loading) {
-                    e.target.style.backgroundColor = '#f8f9fa'
-                  }
-                }}
-              >
-                <Search className="h-4 w-4" />
-                {loading ? 'Searching...' : 'Search Comments'}
-              </button>
+              {/* Mobile: Close Filters Button */}
+              {isMobile && (
+                <div className="mt-4 text-center">
+                  <Button
+                    onClick={() => setFiltersExpanded(false)}
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                    Hide Filters
+                  </Button>
+                </div>
+              )}
             </div>
-          </div>
+          ) : (
+            /* Mobile: Collapsed View */
+            <div>
+              {/* Change Filters Button */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setFiltersExpanded(true)}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 flex-1"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                  Change Filters
+                </Button>
+
+                <Button
+                  onClick={handleSearch}
+                  disabled={!isValidValue || loading}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 flex-shrink-0"
+                >
+                  <Search className="h-4 w-4" />
+                  {loading ? 'Searching...' : 'Search'}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Comments Display */}
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
           {loading && (
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
@@ -369,9 +416,9 @@ const CommentsModal = ({ isOpen, onClose }) => {
               </div>
 
               {comments.map((comment) => (
-                <div key={comment.id} className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+                <div key={comment.id} className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600 min-w-0">
                   <div className="mb-3">
-                    <p className="text-gray-900 dark:text-gray-100 leading-relaxed text-left">{comment.body}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100 leading-relaxed text-left break-words overflow-wrap-anywhere">{comment.body}</p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
@@ -385,13 +432,13 @@ const CommentsModal = ({ isOpen, onClose }) => {
                       <span>{formatLocalTime(comment)}</span>
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      <span>Tickers:</span>
-                      <div className="flex gap-1">
+                    <div className="flex items-start gap-1 min-w-0">
+                      <span className="flex-shrink-0">Tickers:</span>
+                      <div className="flex flex-wrap gap-1 min-w-0">
                         {comment.tickers.map((ticker) => (
                           <span
                             key={ticker}
-                            className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded text-xs font-medium"
+                            className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded text-xs font-medium break-all"
                           >
                             {ticker}
                           </span>
@@ -405,28 +452,13 @@ const CommentsModal = ({ isOpen, onClose }) => {
               {/* Load More Button */}
               {hasMore && (
                 <div className="text-center mt-6">
-                  <button
+                  <Button
                     onClick={handleLoadMore}
                     disabled={loadingMore}
-                    className="px-6 py-2 text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: '#f8f9fa',
-                      color: '#343a40',
-                      border: '1px solid #dee2e6'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!loadingMore) {
-                        e.target.style.backgroundColor = '#e9ecef'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!loadingMore) {
-                        e.target.style.backgroundColor = '#f8f9fa'
-                      }
-                    }}
+                    variant="outline"
                   >
                     {loadingMore ? 'Loading...' : 'Load More Comments'}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
