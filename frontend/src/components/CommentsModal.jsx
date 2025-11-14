@@ -159,22 +159,6 @@ const CommentsModal = ({ isOpen, onClose }) => {
     fetchComments(true)
   }
 
-  // Helper functions for filter summary
-  const getSubredditDisplayName = () => {
-    const sub = subreddits.find(s => s.value === subreddit)
-    return sub ? sub.label : 'All Subreddits'
-  }
-
-  const getTimeDisplaySummary = () => {
-    return `${timeValue} ${timeValue === 1 ? timeUnit.slice(0, -1) : timeUnit}`
-  }
-
-  const getTickersSummary = () => {
-    if (!tickers || !tickers.trim()) return 'All tickers'
-    const tickerList = tickers.split(',').map(t => t.trim()).filter(Boolean)
-    if (tickerList.length <= 2) return tickerList.join(', ')
-    return `${tickerList.slice(0, 2).join(', ')}... (+${tickerList.length - 2} more)`
-  }
 
   // Function to convert UTC timestamp to local time
   const formatLocalTime = (comment) => {
@@ -223,7 +207,7 @@ const CommentsModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-[95vw] h-[95vh] flex flex-col shadow-xl">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 w-[95vw] h-[95vh] flex flex-col shadow-xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2">
@@ -359,15 +343,6 @@ const CommentsModal = ({ isOpen, onClose }) => {
           ) : (
             /* Mobile: Collapsed View */
             <div>
-              {/* Filter Summary */}
-              <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg mb-3">
-                <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                  <div><span className="font-medium">Tickers:</span> {getTickersSummary()}</div>
-                  <div><span className="font-medium">Source:</span> {getSubredditDisplayName()}</div>
-                  <div><span className="font-medium">Time:</span> Last {getTimeDisplaySummary()}</div>
-                </div>
-              </div>
-
               {/* Change Filters Button */}
               <div className="flex gap-3">
                 <Button
@@ -396,7 +371,7 @@ const CommentsModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Comments Display */}
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
           {loading && (
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
@@ -441,9 +416,9 @@ const CommentsModal = ({ isOpen, onClose }) => {
               </div>
 
               {comments.map((comment) => (
-                <div key={comment.id} className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+                <div key={comment.id} className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600 min-w-0">
                   <div className="mb-3">
-                    <p className="text-gray-900 dark:text-gray-100 leading-relaxed text-left">{comment.body}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100 leading-relaxed text-left break-words overflow-wrap-anywhere">{comment.body}</p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
@@ -457,13 +432,13 @@ const CommentsModal = ({ isOpen, onClose }) => {
                       <span>{formatLocalTime(comment)}</span>
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      <span>Tickers:</span>
-                      <div className="flex gap-1">
+                    <div className="flex items-start gap-1 min-w-0">
+                      <span className="flex-shrink-0">Tickers:</span>
+                      <div className="flex flex-wrap gap-1 min-w-0">
                         {comment.tickers.map((ticker) => (
                           <span
                             key={ticker}
-                            className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded text-xs font-medium"
+                            className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded text-xs font-medium break-all"
                           >
                             {ticker}
                           </span>

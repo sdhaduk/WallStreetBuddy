@@ -188,18 +188,29 @@ const StockDetail = () => {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* AI Analysis */}
         <div className="bg-card p-6 rounded-lg border">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">AI Analysis <span className="text-xs text-red-600 font-medium">(This is not financial advice)</span></h2>
-            <Button
-              onClick={() => setShowAnalysisModal(true)}
-              variant="outline"
-              size="sm"
-              className="gap-1"
-              title="View Full Report"
-            >
-              <Maximize2 className="h-3 w-3" />
-              <span>View Full</span>
-            </Button>
+          <div className="mb-4">
+            {/* Header row with title and button */}
+            <div className="flex items-center justify-between mb-2 sm:mb-0">
+              <h2 className="text-xl font-semibold">
+                AI Analysis
+                <span className="hidden sm:inline text-xs text-red-600 font-medium ml-1">(This is not financial advice)</span>
+              </h2>
+              <Button
+                onClick={() => setShowAnalysisModal(true)}
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                title="View Full Report"
+              >
+                <Maximize2 className="h-3 w-3" />
+                <span className="hidden sm:inline">View Full</span>
+              </Button>
+            </div>
+
+            {/* Mobile disclaimer below heading */}
+            <div className="sm:hidden text-left">
+              <span className="text-xs text-red-600 font-medium">(This is not financial advice)</span>
+            </div>
           </div>
           <div
             className="relative cursor-pointer group"
