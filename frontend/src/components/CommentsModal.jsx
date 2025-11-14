@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { X, Search, MessageSquare, Calendar, Hash } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, Search, MessageSquare, Calendar, Hash, ChevronDown, ChevronUp } from 'lucide-react'
 import Button from './Button'
 
 const CommentsModal = ({ isOpen, onClose }) => {
@@ -14,6 +14,24 @@ const CommentsModal = ({ isOpen, onClose }) => {
   const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [filtersExpanded, setFiltersExpanded] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 640 // sm breakpoint
+      setIsMobile(mobile)
+      // On desktop, always expand filters; on mobile, start collapsed
+      if (!mobile) {
+        setFiltersExpanded(true)
+      }
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const timeUnits = [
     { value: 'minutes', label: 'Minutes', max: 10080 },
@@ -128,12 +146,34 @@ const CommentsModal = ({ isOpen, onClose }) => {
     setCursor(null)
     setHasMore(false)
 
+    // Auto-collapse filters after search on mobile
+    if (isMobile) {
+      setFiltersExpanded(false)
+    }
+
     // Call API to fetch comments
     fetchComments(false)
   }
 
   const handleLoadMore = () => {
     fetchComments(true)
+  }
+
+  // Helper functions for filter summary
+  const getSubredditDisplayName = () => {
+    const sub = subreddits.find(s => s.value === subreddit)
+    return sub ? sub.label : 'All Subreddits'
+  }
+
+  const getTimeDisplaySummary = () => {
+    return `${timeValue} ${timeValue === 1 ? timeUnit.slice(0, -1) : timeUnit}`
+  }
+
+  const getTickersSummary = () => {
+    if (!tickers || !tickers.trim()) return 'All tickers'
+    const tickerList = tickers.split(',').map(t => t.trim()).filter(Boolean)
+    if (tickerList.length <= 2) return tickerList.join(', ')
+    return `${tickerList.slice(0, 2).join(', ')}... (+${tickerList.length - 2} more)`
   }
 
   // Function to convert UTC timestamp to local time
@@ -202,100 +242,157 @@ const CommentsModal = ({ isOpen, onClose }) => {
 
         {/* Search Form */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Ticker Input */}
-            <div className="w-full lg:w-96">
-              <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2">
-                Tickers (comma-separated)
-              </label>
-              <input
-                type="text"
-                value={tickers}
-                onChange={(e) => setTickers(e.target.value)}
-                placeholder="e.g., AAPL, TSLA, NVDA (leave empty for all)"
-                className="w-full px-3 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                Leave empty to see all comments from the timeframe
-              </p>
-            </div>
+          {/* Mobile: Collapsible Filters or Desktop: Always Expanded */}
+          {(!isMobile || filtersExpanded) ? (
+            <div>
+              {/* Expanded Filter Form */}
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Ticker Input */}
+                <div className="w-full lg:w-96">
+                  <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2">
+                    Tickers (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={tickers}
+                    onChange={(e) => setTickers(e.target.value)}
+                    placeholder="e.g., AAPL, TSLA, NVDA (leave empty for all)"
+                    className="w-full px-3 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    Leave empty to see all comments from the timeframe
+                  </p>
+                </div>
 
-            {/* Subreddit Filter */}
-            <div className="flex-shrink-0 w-full lg:w-48">
-              <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2">
-                Subreddit
-              </label>
-              <select
-                value={subreddit}
-                onChange={(e) => setSubreddit(e.target.value)}
-                className="w-full px-3 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              >
-                {subreddits.map((sub) => (
-                  <option key={sub.value} value={sub.value}>
-                    {sub.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+                {/* Subreddit Filter */}
+                <div className="flex-shrink-0 w-full lg:w-48">
+                  <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2">
+                    Subreddit
+                  </label>
+                  <select
+                    value={subreddit}
+                    onChange={(e) => setSubreddit(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  >
+                    {subreddits.map((sub) => (
+                      <option key={sub.value} value={sub.value}>
+                        {sub.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            {/* Time Period */}
-            <div className="flex-shrink-0 w-full lg:w-64">
-              <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2">
-                Time Period
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  max={maxValue}
-                  value={timeValue}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    if (value === '') {
-                      setTimeValue('')
-                    } else {
-                      setTimeValue(parseInt(value) || 1)
-                    }
-                  }}
-                  className={`w-20 px-2 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                    isValidValue
-                      ? 'border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-                      : 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
-                  }`}
-                />
-                <select
-                  value={timeUnit}
-                  onChange={(e) => setTimeUnit(e.target.value)}
-                  className="flex-1 px-2 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                >
-                  {timeUnits.map((unit) => (
-                    <option key={unit.value} value={unit.value}>
-                      {unit.label}
-                    </option>
-                  ))}
-                </select>
+                {/* Time Period */}
+                <div className="flex-shrink-0 w-full lg:w-64">
+                  <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2">
+                    Time Period
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max={maxValue}
+                      value={timeValue}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        if (value === '') {
+                          setTimeValue('')
+                        } else {
+                          setTimeValue(parseInt(value) || 1)
+                        }
+                      }}
+                      className={`w-20 px-2 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                        isValidValue
+                          ? 'border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                          : 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                      }`}
+                    />
+                    <select
+                      value={timeUnit}
+                      onChange={(e) => setTimeUnit(e.target.value)}
+                      className="flex-1 px-2 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    >
+                      {timeUnits.map((unit) => (
+                        <option key={unit.value} value={unit.value}>
+                          {unit.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className={`text-xs mt-1 ${isValidValue ? 'text-gray-600 dark:text-gray-400' : 'text-red-500'}`}>
+                    ({getTimeDisplayText()})
+                  </p>
+                </div>
+
+                {/* Search Button */}
+                <div className="flex-shrink-0 w-full lg:w-auto">
+                  <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2 opacity-0">
+                    Action
+                  </label>
+                  <Button
+                    onClick={handleSearch}
+                    disabled={!isValidValue || loading}
+                    variant="outline"
+                    className="gap-2 w-full lg:w-auto justify-center"
+                  >
+                    <Search className="h-4 w-4" />
+                    {loading ? 'Searching...' : 'Search Comments'}
+                  </Button>
+                </div>
               </div>
-              <p className={`text-xs mt-1 ${isValidValue ? 'text-gray-600 dark:text-gray-400' : 'text-red-500'}`}>
-                ({getTimeDisplayText()})
-              </p>
-            </div>
 
-            {/* Search Button */}
-            <div className="flex-shrink-0 w-full lg:w-auto">
-              <label className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-2 opacity-0">
-                Action
-              </label>
-              <Button
-                onClick={handleSearch}
-                disabled={!isValidValue || loading}
-                variant="outline"
-                className="gap-2 w-full lg:w-auto justify-center"
-              >
-                <Search className="h-4 w-4" />
-                {loading ? 'Searching...' : 'Search Comments'}
-              </Button>
+              {/* Mobile: Close Filters Button */}
+              {isMobile && (
+                <div className="mt-4 text-center">
+                  <Button
+                    onClick={() => setFiltersExpanded(false)}
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                    Hide Filters
+                  </Button>
+                </div>
+              )}
             </div>
-          </div>
+          ) : (
+            /* Mobile: Collapsed View */
+            <div>
+              {/* Filter Summary */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg mb-3">
+                <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                  <div><span className="font-medium">Tickers:</span> {getTickersSummary()}</div>
+                  <div><span className="font-medium">Source:</span> {getSubredditDisplayName()}</div>
+                  <div><span className="font-medium">Time:</span> Last {getTimeDisplaySummary()}</div>
+                </div>
+              </div>
+
+              {/* Change Filters Button */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setFiltersExpanded(true)}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 flex-1"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                  Change Filters
+                </Button>
+
+                <Button
+                  onClick={handleSearch}
+                  disabled={!isValidValue || loading}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 flex-shrink-0"
+                >
+                  <Search className="h-4 w-4" />
+                  {loading ? 'Searching...' : 'Search'}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Comments Display */}
