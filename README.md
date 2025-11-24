@@ -73,4 +73,4 @@ graph TD
 - **Zero Downtime Updates**: Rolling deployments with health check validation
 
 ## Future Enhancements
-- **Sentiment Analysis**: Train a Small Language Model (SLM) using gathered Reddit data to classify sentiment for each stock mention, then aggregate individual message sentiment scores to generate overall stock sentiment metrics 
+- **Sentiment Analysis**: Train a SLM (Small Language Model) using gathered Reddit data to classify sentiment for each stock mention, then aggregate individual message sentiment scores to generate overall stock sentiment metrics 
