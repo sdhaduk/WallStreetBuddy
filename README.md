@@ -64,7 +64,6 @@ graph TD
 #### Service Communication
 - **Internal**: Kubernetes DNS-based service discovery
 - **External**: GCE ingress with path-based routing (`/api/*` vs `/*`)
-- **API Security**: Internal API keys for service-to-service communication
 
 #### High Availability Features
 - **Node Failure Tolerance**: Elasticsearch cluster maintains quorum with any single node failure
