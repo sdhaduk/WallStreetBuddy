@@ -86,7 +86,7 @@ class SchedulerService:
             raise
 
     async def _register_jobs(self):
-        from ..scheduler.jobs import stock_analysis_job, home_batch_data_job, process_cached_results
+        from .jobs import stock_analysis_job, home_batch_data_job, process_cached_results
         from apscheduler.triggers.interval import IntervalTrigger
         from apscheduler.triggers.date import DateTrigger
         now = datetime.now()

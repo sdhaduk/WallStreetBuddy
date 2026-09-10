@@ -69,15 +69,15 @@ services:
       - "5044:5044"
       - "9600:9600"
     volumes:
-      - ./pipeline/logstash/pipeline:/usr/share/logstash/pipeline
-      - ./pipeline/logstash/config:/usr/share/logstash/config
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+      - ./logstash/config:/usr/share/logstash/config
     environment:
       - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
 
   kafka-producer:
     build:
       context: .
-      dockerfile: Dockerfile.kafka-producer
+      dockerfile: docker/kafka-producer.Dockerfile
     container_name: kafka-producer
     depends_on:
       - kafka
@@ -91,7 +91,7 @@ services:
   spark-processor:
     build:
       context: .
-      dockerfile: Dockerfile.spark-processor
+      dockerfile: docker/spark-processor.Dockerfile
     container_name: spark-processor
     depends_on:
       - kafka
@@ -105,7 +105,7 @@ services:
   fastapi-backend:
     build:
       context: .
-      dockerfile: Dockerfile.fastapi
+      dockerfile: docker/api.Dockerfile
     container_name: fastapi-backend
     environment:
       - ELASTICSEARCH_URL=http://host.docker.internal:9200

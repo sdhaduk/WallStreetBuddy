@@ -6,7 +6,7 @@ from elasticsearch import Elasticsearch
 import logging
 
 from ..config import settings
-from ..services.scheduler_service import scheduler_service
+from ..scheduler.service import scheduler_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

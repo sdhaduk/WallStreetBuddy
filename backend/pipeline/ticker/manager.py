@@ -6,8 +6,8 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
-CONSTANTS_DIR = BASE_DIR / "constants"
-CONSTANTS_DIR.mkdir(exist_ok=True) 
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(exist_ok=True)
 
 class TickerManager:
     
@@ -18,7 +18,7 @@ class TickerManager:
     
     def __init__(self, cache_days: int = 7):
         self.sec_url = "https://www.sec.gov/files/company_tickers.json"
-        self.cache_file = CONSTANTS_DIR / "sec_tickers.json"
+        self.cache_file = DATA_DIR / "sec_tickers.json"
         self.cache_days = cache_days
         self.tickers: Set[str] = set()
         self.reverse_company_map: Dict[str, str] = {}
@@ -160,7 +160,7 @@ class TickerManager:
     
     def _load_manual_mapping(self) -> Dict[str, str]:
         """Load static manual company name to normalized name mapping."""
-        manual_mapping_file = CONSTANTS_DIR / "manual_ticker_mapping.json"
+        manual_mapping_file = DATA_DIR / "manual_ticker_mapping.json"
         try:
             if os.path.exists(manual_mapping_file):
                 with open(manual_mapping_file, 'r') as f:

@@ -9,9 +9,9 @@ from fastapi.responses import JSONResponse
 import uvicorn
 import logging
 
-from api.config import settings
-from api.routers import health, ticker, analysis
-from api.services.scheduler_service import scheduler_service
+from .config import settings
+from .routers import health, ticker, analysis
+from .scheduler.service import scheduler_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -97,7 +97,7 @@ async def global_exception_handler(_request, exc):
 
 if __name__ == "__main__":
     uvicorn.run(
-        "app:app",
+        "api.main:app",
         host=settings.fastapi_host,
         port=settings.fastapi_port,
         reload=settings.debug

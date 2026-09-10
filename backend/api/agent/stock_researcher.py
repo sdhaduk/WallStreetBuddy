@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIResponsesModel, OpenAIResponsesModelSettings
 from pydantic_ai.providers.openai import OpenAIProvider
-from .yahoo_finance import YahooFinance
+from .tools import YahooFinance
 import os
 import logging
 from typing import Dict, List, Optional

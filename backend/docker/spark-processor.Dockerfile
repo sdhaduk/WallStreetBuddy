@@ -8,9 +8,9 @@ RUN apt-get update && apt-get install -y \
     build-essential gcc g++ python3-dev libffi-dev libblas-dev liblapack-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements-spark-processor.txt .
+COPY requirements/spark-processor.txt ./requirements/spark-processor.txt
 RUN pip install --upgrade pip setuptools wheel
-RUN pip install --no-cache-dir -r requirements-spark-processor.txt
+RUN pip install --no-cache-dir -r requirements/spark-processor.txt
 
 # Download spaCy model inside build layer
 RUN python -m spacy download en_core_web_sm
@@ -36,17 +36,14 @@ COPY --from=builder /usr/local/lib/python3.11 /usr/local/lib/python3.11
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
-COPY pipeline/spark_processor.py pipeline/
+COPY pipeline/__init__.py pipeline/
+COPY pipeline/processor/ pipeline/processor/
 COPY pipeline/ticker/ pipeline/ticker/
 
-# Create __init__.py files for Python modules
-RUN touch pipeline/__init__.py
-RUN touch pipeline/ticker/__init__.py
-
 # Fix ticker cache directory permissions
-RUN mkdir -p pipeline/ticker/constants && \
-    chmod 755 pipeline/ticker/constants && \
-    find pipeline/ticker/constants -name "*.json" -exec chmod 666 {} \;
+RUN mkdir -p pipeline/ticker/data && \
+    chmod 755 pipeline/ticker/data && \
+    find pipeline/ticker/data -name "*.json" -exec chmod 666 {} \;
 
 # Create checkpoint directory
 RUN mkdir -p /tmp/spark-checkpoint-new
@@ -54,4 +51,4 @@ RUN mkdir -p /tmp/spark-checkpoint-new
 # Set Python path to include pipeline modules
 ENV PYTHONPATH=/app
 
-CMD ["python", "pipeline/spark_processor.py"]
+CMD ["python", "-m", "pipeline.processor.main"]

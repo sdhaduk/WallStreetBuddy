@@ -111,8 +111,8 @@ def main():
     
     print("\n🎉 Kafka setup complete!")
     print("\n📋 Next steps:")
-    print("1. Start the producer: python kafka_producer.py")
-    print("2. Start the consumer: python kafka_consumer.py")
+    print("1. Start the producer: python -m pipeline.producer.main")
+    print("2. Start the processor: python -m pipeline.processor.main")
     print("3. Check Kafka UI at: http://localhost:8080")
 
 if __name__ == "__main__":

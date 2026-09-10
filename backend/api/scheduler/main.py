@@ -15,7 +15,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import ConnectionError as ESConnectionError
 
-from ..services.scheduler_service import SchedulerService
+from .service import SchedulerService
 from ..config import settings
 
 # Configure logging

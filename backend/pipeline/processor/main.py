@@ -61,10 +61,8 @@ def extract_tickers_from_text(text: str) -> List[str]:
     # v2 Optimization: Initialize ticker manager once per worker
     global TICKER_MANAGER
     if TICKER_MANAGER is None:
-        import sys
-        import os
-        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-        from ticker.ticker_manager import TickerManager
+        # Imported lazily so the SEC ticker cache is only loaded once per worker
+        from pipeline.ticker.manager import TickerManager
         TICKER_MANAGER = TickerManager()
 
     tickers = set()
@@ -173,10 +171,7 @@ def daily_ticker_update():
         global TICKER_MANAGER
         if TICKER_MANAGER is None:
             # Initialize TICKER_MANAGER if not already done
-            import sys
-            import os
-            sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-            from ticker.ticker_manager import TickerManager
+            from pipeline.ticker.manager import TickerManager
             TICKER_MANAGER = TickerManager()
             logger.info("✅ TICKER_MANAGER initialized for scheduler")
 
@@ -238,7 +233,8 @@ class SparkRedditProcessor:
             self.spark.sparkContext.setLogLevel("WARN")
 
             # Add ticker module to Spark context so workers can access it
-            ticker_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ticker")
+            pipeline_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            ticker_dir = os.path.join(pipeline_dir, "ticker")
             if os.path.exists(ticker_dir):
                 self.spark.sparkContext.addPyFile(ticker_dir)
                 logger.info("Added ticker module to Spark context")

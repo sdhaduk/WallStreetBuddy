@@ -25,7 +25,7 @@ spec:
       - name: scheduler
         image: gcr.io/wallstreetbuddy/fast-api:v13
         # Run scheduler-only script instead of FastAPI server
-        command: ["python", "-m", "api.scheduler.scheduler_main"]
+        command: ["python", "-m", "api.scheduler.main"]
         ports:
         - containerPort: 8080
           name: health

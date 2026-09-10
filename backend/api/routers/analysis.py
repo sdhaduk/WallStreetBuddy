@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 
 from ..config import settings
-from ..services.stock_researcher_agent import stock_analysis_service
+from ..agent.stock_researcher import stock_analysis_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
